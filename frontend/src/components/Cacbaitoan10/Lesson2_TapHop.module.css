@@ -1,0 +1,121 @@
+/* ============================================================
+   Shared lesson styles — Toán 10 Chân Trời Sáng Tạo
+   ============================================================ */
+.root {
+  --primary:    #1a5276;
+  --primary-lg: #2e86c1;
+  --accent:     #f39c12;
+  --green:      #1e8449;
+  --green-bg:   #eafaf1;
+  --red:        #922b21;
+  --red-bg:     #fdf2f2;
+  --blue-bg:    #eaf4fb;
+  --yellow-bg:  #fef9e7;
+  --gray:       #7f8c8d;
+  --gray-bg:    #f4f6f7;
+  --border:     #d5d8dc;
+  --text:       #17202a;
+  --text-muted: #5d6d7e;
+  --radius:     8px;
+  --font-body:  Georgia, 'Times New Roman', serif;
+  --font-ui:    'Segoe UI', Arial, sans-serif;
+  font-family: var(--font-body);
+  color: var(--text);
+  max-width: 860px;
+  margin: 0 auto;
+  background: #fff;
+  padding-bottom: 40px;
+}
+.header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-lg) 100%); color: #fff; padding: 22px 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+.chapterLabel { font-family: var(--font-ui); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.07em; opacity: 0.8; margin-bottom: 3px; }
+.lessonTitle  { font-size: 1.4rem; font-weight: 700; margin: 0; }
+.langToggle   { display: flex; gap: 6px; }
+.langBtn      { padding: 6px 13px; border-radius: 18px; border: 1.5px solid rgba(255,255,255,0.4); background: transparent; color: #fff; font-family: var(--font-ui); font-size: 0.8rem; cursor: pointer; transition: background 0.15s; }
+.langBtn:hover { background: rgba(255,255,255,0.15); }
+.langActive   { background: rgba(255,255,255,0.25); border-color: #fff; font-weight: 600; }
+.objectivesBox   { background: var(--blue-bg); padding: 16px 28px; border-bottom: 1px solid var(--border); }
+.objectivesTitle { font-family: var(--font-ui); font-weight: 700; font-size: 0.9rem; color: var(--primary); margin: 0 0 8px; }
+.objectivesList  { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 5px; font-size: 0.9rem; line-height: 1.55; }
+.tabNav  { display: flex; overflow-x: auto; background: var(--gray-bg); border-bottom: 2px solid var(--border); padding: 0 20px; gap: 2px; }
+.tab     { padding: 10px 13px; font-family: var(--font-ui); font-size: 0.78rem; white-space: nowrap; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; margin-bottom: -2px; transition: color 0.15s, border-color 0.15s; }
+.tab:hover  { color: var(--primary); }
+.tabActive  { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+.sectionContent { padding: 24px 28px; }
+.warmupBox      { background: var(--yellow-bg); border-left: 4px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; }
+.warmupText     { margin: 0 0 12px; line-height: 1.65; font-size: 0.95rem; }
+.warmupQuestion { display: flex; align-items: flex-start; gap: 8px; background: rgba(255,255,255,0.65); border-radius: 6px; padding: 10px 13px; font-size: 0.9rem; line-height: 1.55; }
+.definitionBox  { background: var(--blue-bg); border-left: 4px solid var(--primary); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 14px; font-size: 0.93rem; line-height: 1.65; }
+.definitionLabel { font-family: var(--font-ui); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--primary); font-weight: 700; margin: 0 0 6px; }
+.noteBox   { background: var(--yellow-bg); border: 1px dashed #f0b429; border-radius: 6px; padding: 9px 13px; font-size: 0.87rem; line-height: 1.55; color: #7d6608; margin-bottom: 14px; }
+.subHeading { font-family: var(--font-ui); font-weight: 700; font-size: 0.88rem; color: var(--primary); margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.04em; }
+.exampleGroup { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+.exGroupLabel { background: var(--gray-bg); padding: 6px 13px; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 700; color: var(--primary); margin: 0; }
+.exItem       { display: flex; align-items: center; justify-content: space-between; padding: 8px 13px; border-top: 1px solid var(--border); font-size: 0.9rem; gap: 8px; }
+.badgeTrue    { background: var(--green-bg); color: var(--green); padding: 2px 9px; border-radius: 12px; font-family: var(--font-ui); font-size: 0.73rem; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.badgeFalse   { background: var(--red-bg);   color: var(--red);   padding: 2px 9px; border-radius: 12px; font-family: var(--font-ui); font-size: 0.73rem; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.badgeNeutral { background: var(--gray-bg);  color: var(--gray);  padding: 2px 9px; border-radius: 12px; font-family: var(--font-ui); font-size: 0.73rem; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.twoCol      { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.methodCard  { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; font-size: 0.9rem; line-height: 1.6; }
+.methodTitle { font-family: var(--font-ui); font-weight: 700; font-size: 0.88rem; color: var(--primary); margin: 0 0 6px; }
+.exBox       { background: var(--gray-bg); border-radius: 5px; padding: 8px 10px; font-family: 'Courier New', monospace; font-size: 0.87rem; margin-top: 8px; line-height: 1.7; }
+.setTable { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.setRow   { display: flex; align-items: center; gap: 14px; padding: 7px 12px; background: var(--gray-bg); border-radius: 6px; font-size: 0.9rem; }
+.setSymbol { font-weight: 700; color: var(--primary); font-family: var(--font-ui); min-width: 32px; }
+.opCard   { border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+.opTitle  { font-family: var(--font-ui); font-weight: 700; font-size: 1rem; color: var(--primary); margin: 0 0 6px; }
+.opFormula { font-family: 'Courier New', monospace; font-size: 0.95rem; background: var(--gray-bg); border-radius: 5px; padding: 7px 12px; margin: 8px 0; display: inline-block; }
+.practiceSection { display: flex; flex-direction: column; gap: 18px; }
+.exerciseCard    { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.exQuestion      { display: flex; gap: 10px; align-items: flex-start; padding: 13px 15px; background: var(--gray-bg); }
+.exQuestion p    { margin: 0; font-size: 0.91rem; line-height: 1.65; white-space: pre-wrap; }
+.revealBtn       { display: block; width: 100%; padding: 9px; background: var(--primary); color: #fff; border: none; font-family: var(--font-ui); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.revealBtn:hover { background: var(--primary-lg); }
+.answerBox       { padding: 13px 15px; background: var(--green-bg); border-top: 1px solid var(--border); font-size: 0.9rem; line-height: 1.65; }
+.answerBox p     { margin: 0 0 5px; }
+.answerBox p:last-child { margin-bottom: 0; }
+.gameModeBar    { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.gameModeBtn    { padding: 8px 16px; border-radius: 20px; border: 2px solid var(--border); background: #fff; font-family: var(--font-ui); font-size: 0.82rem; font-weight: 600; cursor: pointer; color: var(--text-muted); transition: all 0.15s; }
+.gameModeBtn:hover { border-color: var(--primary); color: var(--primary); }
+.gameModeActive    { background: var(--primary); color: #fff; border-color: var(--primary); }
+.gameBox      { background: var(--gray-bg); border-radius: var(--radius); padding: 20px; }
+.gameProgress { font-family: var(--font-ui); font-size: 0.82rem; color: var(--text-muted); margin: 0 0 10px; }
+.gameQuestion { font-size: 1rem; font-weight: 600; line-height: 1.55; margin: 0 0 16px; }
+.mcOptions    { display: flex; flex-direction: column; gap: 8px; }
+.mcOption     { text-align: left; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius); background: #fff; font-family: var(--font-body); font-size: 0.9rem; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.mcOption:hover { border-color: var(--primary); background: var(--blue-bg); }
+.mcCorrect    { border-color: var(--green) !important; background: var(--green-bg) !important; font-weight: 600; }
+.mcWrong      { border-color: var(--red)   !important; background: var(--red-bg)   !important; }
+.explainBox   { margin: 12px 0; padding: 10px 13px; background: #fff; border-left: 3px solid var(--accent); border-radius: 5px; font-size: 0.88rem; line-height: 1.55; }
+.nextBtn      { margin-top: 10px; padding: 9px 20px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-family: var(--font-ui); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.nextBtn:hover  { background: var(--primary-lg); }
+.resetBtn     { margin-top: 10px; padding: 9px 20px; background: transparent; color: var(--primary); border: 2px solid var(--primary); border-radius: var(--radius); font-family: var(--font-ui); font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-left: 8px; transition: all 0.15s; }
+.resetBtn:hover { background: var(--primary); color: #fff; }
+.flashCard  { background: #fff; border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
+.flashStmt  { font-size: 1rem; line-height: 1.6; margin: 0 0 18px; text-align: center; }
+.tfBtns     { display: flex; gap: 12px; justify-content: center; }
+.tfTrue     { padding: 10px 28px; background: var(--green-bg); color: var(--green); border: 2px solid var(--green); border-radius: var(--radius); font-family: var(--font-ui); font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+.tfTrue:hover  { background: var(--green); color: #fff; }
+.tfFalse    { padding: 10px 28px; background: var(--red-bg); color: var(--red); border: 2px solid var(--red); border-radius: var(--radius); font-family: var(--font-ui); font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+.tfFalse:hover { background: var(--red); color: #fff; }
+.scoreBox   { text-align: center; padding: 20px; }
+.scoreBig   { font-size: 2rem; font-weight: 700; color: var(--primary); margin: 0 0 8px; }
+.fillItem     { margin-bottom: 18px; }
+.fillTemplate { font-size: 0.93rem; line-height: 1.6; margin: 0 0 8px; }
+.fillRow      { display: flex; align-items: center; gap: 10px; }
+.fillInput    { flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 6px; font-family: var(--font-body); font-size: 0.9rem; outline: none; transition: border-color 0.15s; }
+.fillInput:focus { border-color: var(--primary); }
+.fillCorrect  { border-color: var(--green) !important; background: var(--green-bg); }
+.fillWrong    { border-color: var(--red)   !important; background: var(--red-bg); }
+.fillHint     { font-size: 0.83rem; color: var(--text-muted); font-style: italic; margin: 4px 0 0; }
+.fillActions  { display: flex; gap: 8px; margin-top: 8px; }
+.footer       { text-align: center; padding: 13px; font-family: var(--font-ui); font-size: 0.76rem; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 8px; }
+@media (max-width: 580px) {
+  .header { padding: 16px; }
+  .sectionContent { padding: 18px 14px; }
+  .objectivesBox  { padding: 14px 16px; }
+  .tabNav  { padding: 0 6px; }
+  .tab     { padding: 9px 8px; font-size: 0.72rem; }
+  .lessonTitle { font-size: 1.15rem; }
+  .twoCol  { grid-template-columns: 1fr; }
+  .tfBtns  { flex-direction: column; align-items: center; }
+}

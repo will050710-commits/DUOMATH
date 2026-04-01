@@ -1,0 +1,124 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #f7f8fa;
+}
+
+.header {
+  background: #fff;
+  padding: 16px 24px;
+  border-bottom: 1px solid #ddd;
+}
+
+.timer {
+  font-size: 18px;
+  color: red;
+}
+
+
+.passage {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  border: 3px solid rgba(0, 0, 0, 0.808);
+}
+
+.questions {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  border: 3px solid rgba(0, 0, 0, 0.808);
+}
+
+.question {
+  margin-bottom: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.808);
+  border-radius: 25px;
+  padding: 2px 16px;
+  background-color: rgba(255, 255, 255, 0.896);
+}
+
+label {
+  display: block;
+  margin: 4px 0;
+}
+input[type = "radio"] {
+  margin-right: auto;
+}
+.main-container {
+  display: flex;             /* Align sections side-by-side */         
+  overflow: hidden; 
+  height: calc(100vh - 80px);         /* Prevent the whole page from scrolling */
+}
+
+.scroll-section {
+  flex: 1;                   /* Make both sections equal width */
+  overflow-y: auto;          /* Enable vertical scrolling within the section */
+  padding: 20px;
+  border: 1px solid #ddd;
+}
+
+/* Optional: Distinguish the sections visually */
+.left {
+  background-color: #ffffff;
+}
+
+.right {
+  background-color: #f9f9f9;
+  border-left: 2px solid #ccc;
+}
+footer.footer {
+  background: #fff;
+  padding: 16px 20px;
+  border-top: 1px solid #ddd;
+  text-align: center;
+  gap: 25px;
+  display: flex;
+  justify-content: center;
+  height: 150px;
+}
+.card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  border: 5px solid #ddd;
+  margin-bottom: 16px;
+  width: 15%;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+}
+.card2 {
+  background: #fff;
+  padding: 15px;
+  border-radius: 10px;
+  border: 2px solid #ddd;
+  width: 50%;
+  height: 10px;
+  align-items: center;
+  color: black;
+  margin: 0px 0px 10px 0px;
+}
+
+a:link {
+  color: rgb(0, 0, 0);
+  text-decoration: none;
+}
+
+/* visited link */
+a:visited {
+  color: rgb(0, 0, 0);
+  text-decoration: none;
+}
+
+/* mouse over link */
+a:hover {
+  color: rgba(0, 0, 0, 0.645);
+  text-decoration: none;
+}
+
+/* selected link */
+a:active {
+  color: rgb(255, 255, 255);
+  text-decoration: none;
+}

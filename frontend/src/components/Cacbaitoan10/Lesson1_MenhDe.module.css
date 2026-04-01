@@ -1,0 +1,536 @@
+/* ============================================================
+   Lesson1_MenhDe.module.css
+   Toán 10 – Chân Trời Sáng Tạo
+   ============================================================ */
+
+.root {
+  --primary:      #1a5276;
+  --primary-lg:   #2e86c1;
+  --accent:       #f39c12;
+  --green:        #1e8449;
+  --green-bg:     #eafaf1;
+  --red:          #922b21;
+  --red-bg:       #fdf2f2;
+  --blue-bg:      #eaf4fb;
+  --yellow-bg:    #fef9e7;
+  --gray:         #7f8c8d;
+  --gray-bg:      #f4f6f7;
+  --border:       #d5d8dc;
+  --text:         #17202a;
+  --text-muted:   #5d6d7e;
+  --radius:       8px;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --font-ui:      'Segoe UI', Arial, sans-serif;
+
+  font-family: var(--font-body);
+  color: var(--text);
+  max-width: 860px;
+  margin: 0 auto;
+  background: #fff;
+  padding-bottom: 40px;
+}
+
+/* ── Header ── */
+.header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-lg) 100%);
+  color: #fff;
+  padding: 22px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.chapterLabel {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  opacity: 0.8;
+  margin-bottom: 3px;
+}
+
+.lessonTitle {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Language toggle */
+.langToggle {
+  display: flex;
+  gap: 6px;
+}
+
+.langBtn {
+  padding: 6px 13px;
+  border-radius: 18px;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.langBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.langActive {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: #fff;
+  font-weight: 600;
+}
+
+/* ── Objectives ── */
+.objectivesBox {
+  background: var(--blue-bg);
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+.objectivesTitle {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--primary);
+  margin: 0 0 8px;
+}
+
+.objectivesList {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+/* ── Tab Nav ── */
+.tabNav {
+  display: flex;
+  overflow-x: auto;
+  background: var(--gray-bg);
+  border-bottom: 2px solid var(--border);
+  padding: 0 20px;
+  gap: 2px;
+}
+
+.tab {
+  padding: 10px 14px;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+  color: var(--primary);
+}
+
+.tabActive {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+/* ── Section Content ── */
+.sectionContent {
+  padding: 24px 28px;
+}
+
+/* ── Warm-Up ── */
+.warmupBox {
+  background: var(--yellow-bg);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.warmupText {
+  margin: 0 0 12px;
+  line-height: 1.65;
+  font-size: 0.95rem;
+}
+
+.warmupQuestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 6px;
+  padding: 10px 13px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+/* ── Definition Box ── */
+.definitionBox {
+  background: var(--blue-bg);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  font-size: 0.93rem;
+  line-height: 1.65;
+}
+
+.definitionLabel {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+/* ── Note Box ── */
+.noteBox {
+  background: var(--yellow-bg);
+  border: 1px dashed #f0b429;
+  border-radius: 6px;
+  padding: 9px 13px;
+  font-size: 0.87rem;
+  line-height: 1.55;
+  color: #7d6608;
+  margin-bottom: 14px;
+}
+
+/* ── Sub Heading ── */
+.subHeading {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--primary);
+  margin: 18px 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Example Groups ── */
+.exampleGroup {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.exGroupLabel {
+  background: var(--gray-bg);
+  padding: 6px 13px;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0;
+}
+
+.exItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 13px;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+  gap: 8px;
+}
+
+/* ── Badges ── */
+.badgeTrue {
+  background: var(--green-bg);
+  color: var(--green);
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-family: var(--font-ui);
+  font-size: 0.73rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badgeFalse {
+  background: var(--red-bg);
+  color: var(--red);
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-family: var(--font-ui);
+  font-size: 0.73rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badgeNeutral {
+  background: var(--gray-bg);
+  color: var(--gray);
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-family: var(--font-ui);
+  font-size: 0.73rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Truth Table ── */
+.tableWrap {
+  overflow-x: auto;
+  margin: 10px 0 16px;
+}
+
+.truthTable {
+  border-collapse: collapse;
+  font-family: var(--font-ui);
+  font-size: 0.87rem;
+}
+
+.truthTable th {
+  background: var(--primary);
+  color: #fff;
+  padding: 8px 20px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.truthTable td {
+  border: 1px solid var(--border);
+  padding: 7px 20px;
+  text-align: center;
+}
+
+.cellTrue {
+  background: var(--green-bg);
+  color: var(--green);
+  font-weight: 600;
+}
+
+.cellFalse {
+  background: var(--red-bg);
+  color: var(--red);
+  font-weight: 600;
+}
+
+/* ── Negation Cards ── */
+.negCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 15px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.negRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.91rem;
+  line-height: 1.5;
+}
+
+.negLabel {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 28px;
+  flex-shrink: 0;
+}
+
+/* ── Implication Cards ── */
+.implCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 15px;
+  margin-bottom: 10px;
+  font-size: 0.91rem;
+  line-height: 1.55;
+}
+
+.implCard p {
+  margin: 0 0 7px;
+}
+
+.implMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.implNote {
+  font-size: 0.83rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Quantifier Cards ── */
+.quantCard {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.quantSymbol {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 44px;
+  text-align: center;
+  line-height: 1;
+  padding-top: 2px;
+}
+
+.quantBody {
+  flex: 1;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.quantBody p {
+  margin: 0 0 6px;
+}
+
+.quantName {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--primary);
+  margin: 0 0 4px !important;
+}
+
+.quantNeg,
+.quantEx {
+  background: var(--gray-bg);
+  border-radius: 5px;
+  padding: 5px 10px;
+  margin-top: 6px;
+  font-size: 0.86rem;
+}
+
+/* ── Practice ── */
+.practiceSection {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.exerciseCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.exQuestion {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 13px 15px;
+  background: var(--gray-bg);
+}
+
+.exQuestion p {
+  margin: 0;
+  font-size: 0.91rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.revealBtn {
+  display: block;
+  width: 100%;
+  padding: 9px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.revealBtn:hover {
+  background: var(--primary-lg);
+}
+
+.answerBox {
+  padding: 13px 15px;
+  background: var(--green-bg);
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.answerBox p {
+  margin: 0 0 5px;
+}
+
+.answerBox p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Summary ── */
+.summaryList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summaryItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--blue-bg);
+  border-radius: 7px;
+  padding: 10px 13px;
+  font-size: 0.91rem;
+  line-height: 1.55;
+}
+
+.summaryDot {
+  color: var(--primary);
+  font-size: 0.82rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ── Footer ── */
+.footer {
+  text-align: center;
+  padding: 13px;
+  font-family: var(--font-ui);
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 580px) {
+  .header { padding: 16px 16px; }
+  .sectionContent { padding: 18px 14px; }
+  .objectivesBox { padding: 14px 16px; }
+  .tabNav { padding: 0 6px; }
+  .tab { padding: 9px 9px; font-size: 0.72rem; }
+  .lessonTitle { font-size: 1.15rem; }
+  .quantCard { flex-direction: column; }
+}
