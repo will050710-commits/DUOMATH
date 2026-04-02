@@ -2,9 +2,6 @@
 /* eslint-disable jsx-a11y/alt-text */
 /* eslint-disable @next/next/no-img-element */
 "use client";
-// ─────────────────────────────────────────────────────────────────────────────
-// FILE: frontend/src/components/TrangChu/TrangChuForm.js
-// ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -13,8 +10,6 @@ import { Avatar } from "@heroui/react";
 import DuoMCBSidebar from "../DuoMCB/DuoMCBSidebar";
 import { clearTestSession } from "@/utils/testTimer";
 import { useAuth } from "@/context/authContext";
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function TrangChuForm() {
   const router = useRouter();
@@ -27,8 +22,6 @@ export default function TrangChuForm() {
 
   const [showFlyer,   setShowFlyer]   = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-
-  // ── Flyer steps ────────────────────────────────────────────────────────────
   const flyerSteps = [
     { icon:"📖", title:"Bilingual Lessons",     color:"#0B4F5C", bg:"#e8f4f6",
       steps:['Vào "Học toán" → chọn chương (I – X).',
@@ -52,8 +45,6 @@ export default function TrangChuForm() {
              "3 phần: SAT Reading → IELTS T/F/NG → Toán tự luận (60 phút).",
              "Câu trả lời tự lưu khi chuyển section."] },
   ];
-
-  // ── Scroll-reveal ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined") return;
     const els = document.querySelectorAll("[data-reveal]");
@@ -83,7 +74,6 @@ export default function TrangChuForm() {
     return () => obs.disconnect();
   }, []);
 
-  // ── Close dropdowns on outside click ──────────────────────────────────────
   useEffect(() => {
     if (!showFlyer && !showProfile) return;
     const h = (e) => {
@@ -96,9 +86,6 @@ export default function TrangChuForm() {
 
   function handleSignOut() { logout(); setShowProfile(false); router.push("/"); }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  //  PROFILE DROPDOWN
-  // ─────────────────────────────────────────────────────────────────────────
   const dropStyle = {
     position:"absolute", top:"calc(100% + 10px)", right:0,
     width:290, maxHeight:"80vh", overflowY:"auto",
@@ -134,7 +121,6 @@ export default function TrangChuForm() {
       </div>
     );
 
-    // ── Logged-in ────────────────────────────────────────────────────────────
     return (
       <div style={dropStyle}>
         {/* Header */}
@@ -175,7 +161,6 @@ export default function TrangChuForm() {
           </div>
         </div>
 
-        {/* Recent activity */}
         {recentActivity.length > 0 && (
           <div style={{ padding:"11px 16px", borderBottom:"1px solid #eee" }}>
             <div style={{ fontSize:10, fontWeight:700, color:"#0B4F5C", textTransform:"uppercase", letterSpacing:0.5, marginBottom:7 }}>Hoạt động gần đây</div>
@@ -187,7 +172,6 @@ export default function TrangChuForm() {
           </div>
         )}
 
-        {/* Best scores */}
         {Object.keys(bestScores).length > 0 && (
           <div style={{ padding:"11px 16px", borderBottom:"1px solid #eee" }}>
             <div style={{ fontSize:10, fontWeight:700, color:"#0B4F5C", textTransform:"uppercase", letterSpacing:0.5, marginBottom:7 }}>Điểm cao nhất</div>
@@ -200,7 +184,6 @@ export default function TrangChuForm() {
           </div>
         )}
 
-        {/* Sign out */}
         <div style={{ padding:"10px 16px" }}>
           <button onClick={handleSignOut}
             style={{ width:"100%", padding:"9px 0", background:"#fff0f0", color:"#c0392b", border:"1px solid #f5c6cb", borderRadius:7, fontSize:13, fontWeight:600, cursor:"pointer" }}>
@@ -211,9 +194,6 @@ export default function TrangChuForm() {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  //  RENDER
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div style={{ width:"100%", background:"#fff", display:"flex", justifyContent:"center" }}>
       <div style={{ width:"1200px", maxWidth:"95%", color:"black" }}>
@@ -282,8 +262,6 @@ export default function TrangChuForm() {
             <Link href="/Cacbailam" style={{ textDecoration:"none", color:"black", boxShadow:"0 4px 12px rgba(0,0,0,0.1)", padding:"10px 12px", borderRadius:8, background:"white", whiteSpace:"nowrap" }}>
               Học toán ›
             </Link>
-
-            {/* Show login button only when not logged in */}
             {ready && !user && (
               <Link href="/login">
                 <button style={{ background:"black", color:"white", border:"none", borderRadius:8, padding:"10px 16px", fontWeight:600, cursor:"pointer", whiteSpace:"nowrap" }}>
@@ -328,9 +306,9 @@ export default function TrangChuForm() {
             </p>
             <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
               <Link href="/Cacbailam" style={{ textDecoration:"none" }}>
-                <button style={{ padding:"14px 24px", background:"black", color:"white", borderRadius:10, border:"none", fontSize:17, fontWeight:600, cursor:"pointer" }}>
+                <Link href="/Cacbaitoan10" style={{ padding:"14px 24px", background:"black", color:"white", borderRadius:10, border:"none", fontSize:17, fontWeight:600, cursor:"pointer" }}>
                   Bắt đầu học
-                </button>
+                </Link>
               </Link>
               {ready && !user && (
                 <Link href="/signup" style={{ textDecoration:"none" }}>
