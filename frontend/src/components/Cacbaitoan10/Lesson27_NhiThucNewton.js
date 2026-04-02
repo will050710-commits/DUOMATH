@@ -82,13 +82,22 @@ export default function Lesson27_NhiThucNewton() {
       </div>
     </section>
     <section id="k3" style={{scrollMarginTop:80,marginBottom:64}}><SH icon="📖" title={t("3. Tính Chất Quan Trọng","3. Key Properties")} />
-      <div className="reveal" data-reveal data-reveal-stagger data-stagger="80" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16,transition:"all 0.3s"}}>
-        {[{title:t("Tổng hệ số","Sum of coefficients"),formula:"(1+1)ⁿ = 2ⁿ\nΣCₙᵏ = 2ⁿ",note:t("Thay a=b=1","Set a=b=1"),c:"#1a5276",bg:"#eaf4fb"},
-          {title:t("Tổng hệ số xen kẽ","Alternating sum"),formula:"(1−1)ⁿ = 0\nΣ(−1)ᵏCₙᵏ = 0",note:t("Thay a=1, b=−1","Set a=1, b=−1"),c:"#922b21",bg:"#fdf2f2"},
-          {title:t("Số hạng giữa","Middle term"),formula:"n chẵn: T_{n/2+1} = Cₙⁿ/²·aⁿ/²·bⁿ/²\nn lẻ: 2 số hạng giữa",note:t("STQ có k=n/2","Term with k=n/2"),c:"#856404",bg:"#fff3cd"},
-        ].map((card,i)=>(<article key={i} style={{padding:18,borderRadius:10,background:"#f9f9f9",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}><div style={{fontSize:14,fontWeight:700,color:card.c,marginBottom:8}}>{card.title}</div><div style={{fontFamily:"monospace",fontSize:13,background:card.bg,color:card.c,padding:"8px 12px",borderRadius:8,whiteSpace:"pre-wrap",lineHeight:1.8,marginBottom:6}}>{card.formula}</div><div style={{fontSize:12,color:"#777"}}>{card.note}</div></article>))}
-      </div>
-    </section>
+  <div className="reveal" data-reveal data-reveal-stagger data-stagger="80" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16,transition:"all 0.3s"}}>
+    {[
+      {title:t("Tổng hệ số","Sum of coefficients"), formula:"(1+1)ⁿ = 2ⁿ\nΣCₙᵏ = 2ⁿ", note:t("Thay a=b=1","Set a=b=1"), c:"#1a5276", bg:"#eaf4fb"},
+      {title:t("Tổng hệ số xen kẽ","Alternating sum"), formula:"(1−1)ⁿ = 0\nΣ(−1)ᵏCₙᵏ = 0", note:t("Thay a=1, b=−1","Set a=1, b=−1"), c:"#922b21", bg:"#fdf2f2"},
+      {title:t("Số hạng giữa","Middle term"), formula:"n chẵn: T_{n/2+1} = Cₙⁿ/²·aⁿ/²·bⁿ/²\nn lẻ: 2 số hạng giữa", note:t("STQ có k=n/2","Term with k=n/2"), c:"#856404", bg:"#fff3cd"},
+    ].map((card,i)=>(
+      <article key={i} style={{padding:18,borderRadius:10,background:"#f9f9f9",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
+        <div style={{fontSize:14,fontWeight:700,color:card.c,marginBottom:8}}>{card.title}</div>
+        <div style={{fontFamily:"monospace",fontSize:13,background:card.bg,color:card.c,padding:"8px 12px",borderRadius:8,whiteSpace:"pre-wrap",lineHeight:1.8,marginBottom:6}}>
+          {card.formula}
+        </div>
+        <div style={{fontSize:12,color:"#777"}}>{card.note}</div>
+      </article>
+    ))}
+  </div>
+</section>
     <section id="th" style={{scrollMarginTop:80,marginBottom:64}}><SH icon="✏️" title={t("Thực Hành","Practice")} />
       <div className="reveal" data-reveal data-reveal-stagger data-stagger="80" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:36,transition:"all 0.3s"}}>
         {[{id:"e1",q:t("Khai triển (x+2)⁴ bằng nhị thức Newton.","Expand (x+2)⁴ using the Binomial Theorem."),a:["T_{k+1} = C₄ᵏ·x⁴⁻ᵏ·2ᵏ","C₄⁰x⁴+C₄¹·2x³+C₄²·4x²+C₄³·8x+C₄⁴·16","= x⁴+8x³+24x²+32x+16"]},
