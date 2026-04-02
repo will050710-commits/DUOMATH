@@ -2,7 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import DuoTranslate from "../DuoTranslate";
+import DuoTranslate from "@/DUoMCB/DuoTranslate";
 export default function Lesson8_HamSoBacHai() {
   const [lang, setLang] = useState("vi");
   const [revealedAnswers, setRevealedAnswers] = useState({});
