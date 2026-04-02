@@ -305,7 +305,7 @@ export default function TrangChuForm() {
               At <strong>DUOMATH</strong>, we believe the future of <strong>STEM</strong> is <strong>bilingual</strong>. Dive into an immersive learning experience with resources that help you solve complex problems in two languages.
             </p>
             <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
-              <Link href="/Cacbailam" style={{ textDecoration:"none" }}>
+              <Link href="/Cacbaitoan10" style={{ textDecoration:"none" }}>
                 <Link href="/Cacbaitoan10" style={{ padding:"14px 24px", background:"black", color:"white", borderRadius:10, border:"none", fontSize:17, fontWeight:600, cursor:"pointer" }}>
                   Bắt đầu học
                 </Link>
