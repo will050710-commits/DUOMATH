@@ -46,7 +46,9 @@ export default function Lesson27_NhiThucNewton() {
     <div className="reveal" data-reveal data-reveal-stagger data-stagger="60" style={{marginBottom:40,padding:20,borderRadius:10,background:"#f9f9f9",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
       <div style={{fontSize:18,fontWeight:600,marginBottom:14}}>🎯 {t("Yêu cầu cần đạt","Objectives")}</div>
               <div key={"0"} style={{fontSize:15,color:"#555",marginBottom:6}}>• Phát biểu và viết công thức nhị thức Newton. / State and write the Binomial Theorem formula.</div>
-        <div key={"1"} style={{fontSize:15,color:"#555",marginBottom:6}}>• Xác định số hạng tổng quát T_{k+1}=Cₙᵏ·aⁿ⁻ᵏ·bᵏ. / Identify general term T_{k+1}=Cₙᵏ·aⁿ⁻ᵏ·bᵏ.</div>
+        <div key={"1"} style={{fontSize:15,color:"#555",marginBottom:6}}>
+  {"• Xác định số hạng tổng quát T_{k+1}=Cₙᵏ·aⁿ⁻ᵏ·bᵏ. / Identify general term T_{k+1}=Cₙᵏ·aⁿ⁻ᵏ·bᵏ."}
+</div>
         <div key={"2"} style={{fontSize:15,color:"#555",marginBottom:6}}>• Áp dụng Tam Giác Pascal. / Apply Pascal&apos;s Triangle.</div>
         <div key={"3"} style={{fontSize:15,color:"#555",marginBottom:6}}>• Tính tổng hệ số: Σ Cₙᵏ = 2ⁿ. / Compute sum of coefficients: Σ Cₙᵏ=2ⁿ.</div>
         <div key={"4"} style={{fontSize:15,color:"#555",marginBottom:6}}>• Tìm số hạng chứa lũy thừa cho trước. / Find the term with a given power.</div>
