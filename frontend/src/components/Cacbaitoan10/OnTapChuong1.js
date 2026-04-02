@@ -2,7 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import DuoTranslate from "../DuoTranslate";
+import DuoTranslate from "@/components/DuoMCB/DuoTranslate";
 const SectionHeader = ({ icon, title }) => (
   <div style={{ display:"flex", alignItems:"center", gap:12, fontSize:22, fontWeight:700, color:"#0B4F5C", marginBottom:20, paddingBottom:12, borderBottom:"2px solid #f0f0f0" }}>
     <span>{icon}</span><span>{title}</span>

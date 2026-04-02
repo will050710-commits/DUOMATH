@@ -1,5 +1,5 @@
 "use client";
-import DuoMCBSideBar from "@/components/DuoMCB/DuoMCBSidebar";
+import DuoMCBSidebar from "@/components/DuoMCB/DuoMCBSidebar";
 export default function Page() {
-    return <DuoMCBSideBar />;
+  return <DuoMCBSidebar />;
 }

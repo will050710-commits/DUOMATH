@@ -1,5 +1,6 @@
-import TichSoVecto from "@/components/Lesson15_TichSoVecto";
-
-export default function Lesson15_TichSoVectoPage() {
-  return <TichSoVecto />;
+"use client";
+import DuoTranslate from "@/components/DuoMCB/DuoTranslate";
+import TichSoVecto from "@/components/Cacbaitoan10/Lesson15_TichSoVecto";
+export default function Page() {
+  return <DuoTranslate><TichSoVecto /></DuoTranslate>;
 }
