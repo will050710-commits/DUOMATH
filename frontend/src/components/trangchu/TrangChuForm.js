@@ -5,7 +5,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // FILE: frontend/src/components/TrangChu/TrangChuForm.js
 // ─────────────────────────────────────────────────────────────────────────────
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -383,19 +382,43 @@ export default function TrangChuForm() {
         </div>
 
         {/* ═══════ CONTACT ═══════ */}
-        <hr style={{ width:"5px" }} />
-        <h2 className="reveal" data-reveal data-reveal-stagger data-stagger="60" style={{ fontSize:28, marginBottom:20 }}>Contact</h2>
-        <div className="reveal" data-reveal style={{ marginBottom:60 }}>
-          <Accordion selectionMode="multiple" variant="shadow" colorScheme="primary" defaultValue={["1"]}
-            style={{ marginBottom:20, padding:20, borderRadius:10, background:"#f9f9f9", width:"100%" }}>
-            <AccordionItem key="1" aria-label="Contact Us" title="Contact Us">
-              <div className="reveal" data-reveal data-reveal-stagger data-stagger="120">
-                {["📧Gmail: will050710gmail.com","☎️Phone: +84 336 290 219","📍Address: Thpt Nguyễn Chí Thanh"].map((l,i)=>(
-                  <div key={i} style={{ marginBottom:4 }}>{l}</div>
-                ))}
+        <div className="reveal" data-reveal style={{ marginBottom:60, marginTop:60 }}>
+          <div style={{
+            display:"flex", alignItems:"flex-start", gap:48,
+            padding:"36px 40px", borderRadius:14,
+            border:"1px solid #e8edf0", background:"#fafcfd",
+            flexWrap:"wrap",
+          }}>
+            {/* Left: Branding */}
+            <div style={{ display:"flex", flexDirection:"column", gap:12, minWidth:160 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <img src="/images/duosteamicon.png" style={{ width:48, height:48, objectFit:"contain", borderRadius:8 }} />
+                <span style={{ fontWeight:800, fontSize:18, color:"#0B4F5C", letterSpacing:"-0.5px" }}>DUOMATH</span>
               </div>
-            </AccordionItem>
-          </Accordion>
+              <span style={{ fontSize:12, color:"#999", fontStyle:"italic" }}>Bilingual Math for STEM learners</span>
+            </div>
+
+            {/* Divider */}
+            <div style={{ width:1, background:"#dde6ea", alignSelf:"stretch", minHeight:80 }} />
+
+            {/* Right: Contact rows */}
+            <div style={{ display:"flex", flexDirection:"column", gap:14, flex:1, minWidth:220 }}>
+              {[
+                { icon:"📍", label:"Địa chỉ",  value:"Thpt Nguyễn Chí Thanh, TP Hồ Chí Minh" },
+                { icon:"📧", label:"Gmail",     value:"will050710@gmail.com",  href:"mailto:will050710@gmail.com" },
+                { icon:"☎️", label:"Hotline",   value:"+84 336 290 219",       href:"tel:+84336290219" },
+              ].map(({ icon, label, value, href }, i) => (
+                <div key={i} style={{ display:"flex", alignItems:"center", gap:12 }}>
+                  <span style={{ fontSize:18, width:24, textAlign:"center", flexShrink:0 }}>{icon}</span>
+                  <span style={{ fontWeight:700, fontSize:13, color:"#0B4F5C", width:64, flexShrink:0 }}>{label}</span>
+                  {href
+                    ? <a href={href} style={{ fontSize:13, color:"#333", textDecoration:"none" }}>{value}</a>
+                    : <span style={{ fontSize:13, color:"#333" }}>{value}</span>
+                  }
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <style jsx>{`
@@ -408,7 +431,6 @@ export default function TrangChuForm() {
           article{transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s ease;border-radius:10px;padding:8px}
           article:hover{transform:translateY(-6px) scale(1.01);box-shadow:0 12px 28px rgba(0,0,0,0.12)}
         `}</style>
-
         <DuoMCBSidebar />
       </div>
     </div>
