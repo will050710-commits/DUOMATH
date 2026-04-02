@@ -32,4 +32,3 @@ export default function RootLayout({ children }) {
 import { AuthProvider } from "@/context/authContext";
 // bọc children:
 <AuthProvider>{children}</AuthProvider>
-NEXT_PUBLIC_BACKEND_URL= "https://duomath.onrender.com"
