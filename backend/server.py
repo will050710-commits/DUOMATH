@@ -319,106 +319,85 @@ def get_history(session_id):
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    """Text-only chat using the Socratic tutor system prompt."""
-    d          = request.get_json(force=True) or {}
+    """Unified chat route handling both text and images."""
+    d = request.get_json(force=True) or {}
     session_id = d.get("session_id", "")
-    message    = d.get("message", "").strip()
+    user_message = d.get("message", "").strip()
+    image_data = d.get("image")  # Optional field
 
-    if not session_id or not message:
+    if not session_id or not user_message:
         return jsonify({"error": "session_id and message are required."}), 400
 
-    db  = get_db()
+    db = get_db()
     row = db.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
     if not row:
         return jsonify({"error": "Invalid session."}), 404
 
     history = json.loads(row["history"] or "[]")
-    history.append({"role": "user", "content": message})
 
-    system = (
-        "You are DuoMCB, a bilingual (Vietnamese-English) math tutor for Vietnamese Grade 10-12 students. "
-        "Always reply in the same language the student used. "
-        "Use the Socratic method: guide with questions rather than giving the full answer immediately. "
-        "When showing formulas, use plain-text notation like x^2, sqrt(x), etc. "
-        "Be encouraging and concise."
-    )
+    # --- Logic for Image vs. Text ---
+    if image_data:
+        # 1. Parse Image (Vision Mode)
+        if "," in image_data:
+            header, b64_content = image_data.split(",", 1)
+            media_type = header.split(":")[1].split(";")[0]
+        else:
+            b64_content = image_data
+            media_type = "image/jpeg"
 
+        user_content = [
+            {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{b64_content}"}},
+            {"type": "text", "text": user_message}
+        ]
+        
+        # Use Vision Model and Vision-focused Prompt
+        model = "meta-llama/llama-4-scout-17b-16e-instruct"
+        system_prompt = (
+            "You are DuoMCB, a bilingual (English & Vietnamese) AI tutor. "
+            "Analyze the image carefully and use the Socratic method: guide with "
+            "questions rather than giving the full answer immediately."
+        )
+        # Store a simple text label in history to save database space
+        history.append({"role": "user", "content": f"[Image uploaded] {user_message}"})
+    else:
+        # 2. Text-only Mode
+        user_content = user_message
+        model = "llama-3.3-70b-versatile"
+        system_prompt = (
+            "You are DuoMCB, a bilingual (Vietnamese-English) math tutor for Grade 10-12 students. "
+            "Use the Socratic method: guide with questions. Be encouraging and concise."
+        )
+        history.append({"role": "user", "content": user_message})
+
+    # --- API Request to Groq ---
     payload = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [{"role": "system", "content": system}] + history[-20:],
+        "model": model,
+        "messages": [{"role": "system", "content": system_prompt}] + history[-10:],
         "max_tokens": 1024,
         "temperature": 0.7,
     }
 
+    # Override user content for the actual API call if it's an image
+    payload["messages"][-1]["content"] = user_content
+
     try:
-        resp = requests.post(f"{GROQ_BASE}/chat/completions", headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}, json=payload, timeout=30)
+        resp = requests.post(
+            f"{GROQ_BASE}/chat/completions", 
+            headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}, 
+            json=payload, 
+            timeout=30
+        )
         resp.raise_for_status()
         reply = resp.json()["choices"][0]["message"]["content"]
     except Exception as e:
         return jsonify({"error": True, "reply": f"AI unavailable: {str(e)}"}), 502
 
+    # --- Save & Return ---
     history.append({"role": "assistant", "content": reply})
     db.execute("UPDATE sessions SET history=? WHERE session_id=?", (json.dumps(history[-40:]), session_id))
     db.commit()
 
     return jsonify({"reply": reply, "session_id": session_id, "history_length": len(history)})
-
-@app.route("/api/chat-image", methods=["POST"])
-def chat_image():
-    """Image + Text chat using Llama 4 Scout Vision prompt."""
-    d = request.get_json(force=True) or {}
-    session_id = d.get("session_id", "")
-    user_message = d.get("message", "").strip()
-    image_data = d.get("image", "") 
-
-    if not session_id or not user_message or not image_data:
-        return jsonify({"error": "session_id, message, and image are required."}), 400
-
-    db  = get_db()
-    row = db.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
-    if not row:
-        return jsonify({"error": "Invalid session."}), 404
-    history = json.loads(row["history"] or "[]")
-
-    if "," in image_data:
-        header, b64_content = image_data.split(",", 1)
-        media_type = header.split(":")[1].split(";")[0]
-    else:
-        b64_content = image_data
-        media_type = "image/jpeg"
-
-    user_msg_content = [
-        {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{b64_content}"}},
-        {"type": "text", "text": user_message}
-    ]
-    
-    # We save a text representation of the image upload to history to save DB space
-    history.append({"role": "user", "content": f"[Image uploaded] {user_message}"})
-
-    system = (
-        "You are DuoMCB, a bilingual (English & Vietnamese) AI tutor for high school students. "
-        "When given an image of a math or science problem, analyze it carefully and respond clearly. "
-        "Use step-by-step explanations. Detect the language of the user's request and reply accordingly."
-    )
-
-    payload = {
-        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
-        "messages": [{"role": "system", "content": system}, {"role": "user", "content": user_msg_content}],
-        "max_tokens": 2048,
-    }
-
-    try:
-        resp = requests.post(f"{GROQ_BASE}/chat/completions", headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}, json=payload, timeout=30)
-        resp.raise_for_status()
-        reply = resp.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        return jsonify({"error": f"Image analysis failed: {str(e)}"}), 502
-
-    history.append({"role": "assistant", "content": reply})
-    db.execute("UPDATE sessions SET history=? WHERE session_id=?", (json.dumps(history[-40:]), session_id))
-    db.commit()
-
-    return jsonify({"session_id": session_id, "reply": reply})
 
 @app.route("/api/translate", methods=["POST"])
 def translate():
