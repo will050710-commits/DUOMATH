@@ -23,7 +23,7 @@ const baseInp = {
 function Inp({ style, ...props }) {
   return (
     <input {...props} style={{ ...baseInp, ...style }}
-      onFocus={e => e.target.style.borderColor = "#0B4F5C"}
+      onFocus={e => e.target.style.borderColor = "#13b0ff"}
       onBlur={e  => e.target.style.borderColor = "#ddd"} />
   );
 }
@@ -74,7 +74,7 @@ export default function SignUpForm() {
         </div>
 
         {/* Hint bar */}
-        <div style={{ background: "#e8f4f6", padding: "7px 32px", fontSize: 12, color: "#0B4F5C", fontWeight: 500 }}>
+        <div style={{ background: "#e8f4f6", padding: "7px 32px", fontSize: 12, color: "#13b0ff", fontWeight: 500 }}>
           ✦ Miễn phí · Lưu điểm test & mini-game · Xem thống kê cá nhân
         </div>
 
@@ -95,7 +95,7 @@ export default function SignUpForm() {
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Lớp</label>
               <select value={f.grade} onChange={set("grade")}
-                style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #ddd", borderRadius: 8, fontSize: 15, background: "#fff", outline: "none" }}>
+                style={{ width: "100%", padding: "11px 12px", border: "1.5px solid #13b0ff", borderRadius: 8, fontSize: 15, background: "#fff", outline: "none" }}>
                 {GRADES.map(g => <option key={g}>{g}</option>)}
               </select>
             </div>
@@ -107,17 +107,17 @@ export default function SignUpForm() {
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Trường học <span style={{ color: "#bbb", fontWeight: 400 }}>(không bắt buộc)</span></label>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Trường học <span style={{ color: "#6e6e6e", fontWeight: 400 }}>(không bắt buộc)</span></label>
             <Inp type="text" value={f.school} onChange={set("school")} placeholder="VD: THPT Nguyễn Chí Thanh" />
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Số điện thoại <span style={{ color: "#bbb", fontWeight: 400 }}>(không bắt buộc)</span></label>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Số điện thoại <span style={{ color: "#6e6e6e", fontWeight: 400 }}>(không bắt buộc)</span></label>
             <Inp type="tel" value={f.phone} onChange={set("phone")} placeholder="+84 ..." />
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Mật khẩu * <span style={{ color: "#bbb", fontWeight: 400 }}>(tối thiểu 6 ký tự)</span></label>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Mật khẩu * <span style={{ color: "#6e6e6e", fontWeight: 400 }}>(tối thiểu 6 ký tự)</span></label>
             <div style={{ position: "relative" }}>
               <Inp type={showPw ? "text" : "password"} value={f.password} onChange={set("password")} placeholder="Tạo mật khẩu" autoComplete="new-password" required style={{ paddingRight: 44 }} />
               <button type="button" onClick={() => setShowPw(v => !v)}
@@ -133,16 +133,16 @@ export default function SignUpForm() {
           </div>
 
           <button type="submit" disabled={loading}
-            style={{ width: "100%", padding: "12px 0", background: loading ? "#6ca3ae" : "#0B4F5C", color: "white", border: "none", borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", marginBottom: 12, transition: "background 0.2s" }}>
+            style={{ width: "100%", padding: "12px 0", background: loading ? "#6ca3ae" : "#13b0ff", color: "white", border: "none", borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", marginBottom: 12, transition: "background 0.2s" }}>
             {loading ? "Đang tạo tài khoản…" : "Tạo tài khoản"}
           </button>
 
           <div style={{ textAlign: "center", fontSize: 13, color: "#888", marginBottom: 8 }}>
             Đã có tài khoản?{" "}
-            <Link href="/login" style={{ color: "#0B4F5C", fontWeight: 600, textDecoration: "none" }}>Đăng nhập</Link>
+            <Link href="/login" style={{ color: "#13b0ff", fontWeight: 600, textDecoration: "none" }}>Đăng nhập</Link>
           </div>
           <div style={{ textAlign: "center" }}>
-            <Link href="/" style={{ color: "#bbb", fontSize: 12, textDecoration: "none" }}>← Về trang chủ</Link>
+            <Link href="/" style={{ color: "#6e6e6e", fontSize: 12, textDecoration: "none" }}>← Về trang chủ</Link>
           </div>
         </form>
       </div>

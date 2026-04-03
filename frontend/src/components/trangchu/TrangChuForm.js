@@ -200,7 +200,7 @@ export default function TrangChuForm() {
 
         {/* ═══════ HEADER ═══════ */}
         <header className="reveal" data-reveal
-          style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"20px 20px", position:"relative", zIndex:300, boxShadow:"0 4px 12px rgba(0,0,0,0.1)", background:"linear-gradient(135deg,#00d8fe,#13b0ff)", color:"white" }}>
+          style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"20px 20px", position:"relative", zIndex:300, boxShadow:"0 4px 12px rgba(0,0,0,0.1)", background:"linear-gradient(135deg, #00d8fe, #13b0ff)", color:"white" }}>
 
           <div style={{ fontWeight:"bold", fontSize:22, color:"#0B4F5C", letterSpacing:1 }}>DUOSTEAM</div>
 
@@ -210,7 +210,7 @@ export default function TrangChuForm() {
               Chatbot ›
             </Link>
 
-            {/* How to use flyer */}
+            
             <div data-flyer-root style={{ position:"relative" }}>
               <button onClick={() => setShowFlyer(v => !v)}
                 style={{ color:showFlyer?"white":"black", boxShadow:"0 4px 12px rgba(0,0,0,0.1)", padding:"10px 12px", borderRadius:8, background:showFlyer?"#0B4F5C":"white", border:"none", fontSize:14, cursor:"pointer", fontWeight:500, display:"flex", alignItems:"center", gap:5, whiteSpace:"nowrap", transition:"all 0.2s" }}>
@@ -306,7 +306,7 @@ export default function TrangChuForm() {
             </p>
             <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
               <Link href="/Cacbaitoan10" style={{ textDecoration:"none" }}>
-                <Link href="/Cacbaitoan10" style={{ padding:"14px 24px", background:"black", color:"white", borderRadius:10, border:"none", fontSize:17, fontWeight:600, cursor:"pointer" }}>
+                <Link href="/Cacbaitoan10" style={{ padding:"24px 24px", background:"black", color:"white", borderRadius:10, border:"none", fontSize:17, fontWeight:600, cursor:"pointer" }}>
                   Bắt đầu học
                 </Link>
               </Link>
@@ -359,7 +359,6 @@ export default function TrangChuForm() {
           })}
         </div>
 
-        {/* ═══════ CONTACT ═══════ */}
         <div className="reveal" data-reveal style={{ marginBottom:60, marginTop:60 }}>
           <div style={{
             display:"flex", alignItems:"flex-start", gap:48,
@@ -376,7 +375,6 @@ export default function TrangChuForm() {
               <span style={{ fontSize:12, color:"#999", fontStyle:"italic" }}>Bilingual Math for STEM learners</span>
             </div>
 
-            {/* Divider */}
             <div style={{ width:1, background:"#dde6ea", alignSelf:"stretch", minHeight:80 }} />
 
             {/* Right: Contact rows */}

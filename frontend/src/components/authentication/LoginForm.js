@@ -43,7 +43,7 @@ export default function LoginForm() {
       <div style={{ width: "100%", maxWidth: 420, background: "#fff", borderRadius: 16, boxShadow: "0 8px 40px rgba(0,0,0,0.1)", overflow: "hidden" }}>
 
         {/* Banner */}
-        <div style={{ background: "linear-gradient(135deg,#0B4F5C,#1a9ab5)", padding: "28px 32px 22px", textAlign: "center", color: "white" }}>
+        <div style={{ background: "linear-gradient(135deg, #00d8fe, #13b0ff)", padding: "28px 32px 22px", textAlign: "center", color: "white" }}>
           <div style={{ fontSize: 30, marginBottom: 6 }}>🎓</div>
           <div style={{ fontSize: 21, fontWeight: 800, marginBottom: 3 }}>Đăng nhập</div>
           <div style={{ fontSize: 13, opacity: 0.82 }}>Chào mừng quay lại DuoMath!</div>
@@ -61,7 +61,7 @@ export default function LoginForm() {
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 5 }}>Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com"
               autoComplete="email" required style={inp}
-              onFocus={e => e.target.style.borderColor = "#0B4F5C"}
+              onFocus={e => e.target.style.borderColor = "#13b0ff"}
               onBlur={e  => e.target.style.borderColor = "#ddd"} />
           </div>
 
@@ -71,7 +71,7 @@ export default function LoginForm() {
               <input type={showPw ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="Nhập mật khẩu" autoComplete="current-password" required
                 style={{ ...inp, paddingRight: 44 }}
-                onFocus={e => e.target.style.borderColor = "#0B4F5C"}
+                onFocus={e => e.target.style.borderColor = "#13b0ff"}
                 onBlur={e  => e.target.style.borderColor = "#ddd"} />
               <button type="button" onClick={() => setShowPw(v => !v)}
                 style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "#888" }}>
@@ -81,13 +81,13 @@ export default function LoginForm() {
           </div>
 
           <button type="submit" disabled={loading}
-            style={{ width: "100%", padding: "12px 0", background: loading ? "#6ca3ae" : "#0B4F5C", color: "white", border: "none", borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", marginBottom: 14, transition: "background 0.2s" }}>
+            style={{ width: "100%", padding: "12px 0", background: loading ? "#6ca3ae" : "#13b0ff", color: "white", border: "none", borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", marginBottom: 14, transition: "background 0.2s" }}>
             {loading ? "Đang đăng nhập…" : "Đăng nhập"}
           </button>
 
           <div style={{ textAlign: "center", fontSize: 13, color: "#888", marginBottom: 10 }}>
             Chưa có tài khoản?{" "}
-            <Link href="/signup" style={{ color: "#0B4F5C", fontWeight: 600, textDecoration: "none" }}>Đăng ký miễn phí</Link>
+            <Link href="/signup" style={{ color: "#13b0ff", fontWeight: 600, textDecoration: "none" }}>Đăng ký miễn phí</Link>
           </div>
           <div style={{ textAlign: "center" }}>
             <Link href="/" style={{ color: "#bbb", fontSize: 12, textDecoration: "none" }}>← Về trang chủ</Link>
