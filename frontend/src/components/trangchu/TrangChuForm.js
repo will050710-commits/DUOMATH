@@ -249,10 +249,10 @@ export default function TrangChuForm() {
                   </div>
                   <div style={{ display:"flex", gap:8, marginTop:10 }}>
                     <Link href="/Cacbailam" style={{ flex:1, textDecoration:"none" }} onClick={() => setShowFlyer(false)}>
-                      <div style={{ background:"#0B4F5C", color:"white", borderRadius:7, padding:"9px 0", textAlign:"center", fontWeight:700, fontSize:13, cursor:"pointer" }}>📖 Bắt đầu học</div>
+                      <div style={{ background:"#0B4F5C", color:"white", borderRadius:7, padding:"9px 0", textAlign:"center", fontWeight:700, fontSize:13, cursor:"pointer" }}>📖 Start learning</div>
                     </Link>
                     <Link href="/DuoMCB" style={{ flex:1, textDecoration:"none" }} onClick={() => setShowFlyer(false)}>
-                      <div style={{ background:"#f5f5f5", color:"#0B4F5C", border:"1.5px solid #0B4F5C", borderRadius:7, padding:"9px 0", textAlign:"center", fontWeight:700, fontSize:13, cursor:"pointer" }}>🤖 Hỏi DuoMCB</div>
+                      <div style={{ background:"#f5f5f5", color:"#0B4F5C", border:"1.5px solid #0B4F5C", borderRadius:7, padding:"9px 0", textAlign:"center", fontWeight:700, fontSize:13, cursor:"pointer" }}>🤖 ask DuoMCB</div>
                     </Link>
                   </div>
                 </div>
@@ -260,12 +260,12 @@ export default function TrangChuForm() {
             </div>
 
             <Link href="/Cacbailam" style={{ textDecoration:"none", color:"black", boxShadow:"0 4px 12px rgba(0,0,0,0.1)", padding:"10px 12px", borderRadius:8, background:"white", whiteSpace:"nowrap" }}>
-              Học toán ›
+              Math lessons ›
             </Link>
             {ready && !user && (
               <Link href="/login">
                 <button style={{ background:"black", color:"white", border:"none", borderRadius:8, padding:"10px 16px", fontWeight:600, cursor:"pointer", whiteSpace:"nowrap" }}>
-                  Đăng nhập
+                  Log in
                 </button>
               </Link>
             )}
@@ -307,13 +307,13 @@ export default function TrangChuForm() {
             <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
               <Link href="/Cacbaitoan10" style={{ textDecoration:"none" }}>
                 <Link href="/Cacbaitoan10" style={{ padding:"20px 24px", background:"black", color:"white", borderRadius:10, border:"none", fontSize:17, fontWeight:600, cursor:"pointer" }}>
-                  Bắt đầu học
+                  Start 
                 </Link>
               </Link>
               {ready && !user && (
                 <Link href="/signup" style={{ textDecoration:"none" }}>
                   <button style={{ padding:"14px 24px", background:"#e8f4f6", color:"#0B4F5C", borderRadius:10, border:"1.5px solid #0B4F5C", fontSize:17, fontWeight:600, cursor:"pointer" }}>
-                    Đăng ký miễn phí
+                    Sign Up
                   </button>
                 </Link>
               )}
