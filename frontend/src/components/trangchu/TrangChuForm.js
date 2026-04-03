@@ -306,7 +306,7 @@ export default function TrangChuForm() {
             </p>
             <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
               <Link href="/Cacbaitoan10" style={{ textDecoration:"none" }}>
-                <button href="/Cacbaitoan10" style={{ padding:"22px 24px", background:"black", color:"white", borderRadius:10, border:"none", fontSize:17, fontWeight:600, cursor:"pointer" }}>
+                <button href="/Cacbaitoan10" style={{ padding:"14px 24px", background:"black", color:"white", borderRadius:10, border:"none", fontSize:17, fontWeight:600, cursor:"pointer" }}>
                   Start 
                 </button>
               </Link>
