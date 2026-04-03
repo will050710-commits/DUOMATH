@@ -103,21 +103,21 @@ export default function SignUpForm() {
 
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Email *</label>
-            <Inp type="email" value={f.email} onChange={set("email")} placeholder="you@example.com" autoComplete="email" required />
+            <Inp type="email" value={f.email} onChange={set("email")} placeholder="you@example.com" autoComplete="email" required style={{ border: "1.5px solid #555555" }} />
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Trường học <span style={{ color: "#6e6e6e", fontWeight: 400 }}>(không bắt buộc)</span></label>
-            <Inp type="text" value={f.school} onChange={set("school")} placeholder="VD: THPT Nguyễn Chí Thanh" />
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Trường học <span style={{ color: "#555555", fontWeight: 400 }}>(không bắt buộc)</span></label>
+            <Inp type="text" value={f.school} onChange={set("school")} placeholder="VD: THPT Nguyễn Chí Thanh" style={{ border: "1.5px solid #555555" }} />
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Số điện thoại <span style={{ color: "#6e6e6e", fontWeight: 400 }}>(không bắt buộc)</span></label>
-            <Inp type="tel" value={f.phone} onChange={set("phone")} placeholder="+84 ..." />
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Số điện thoại <span style={{ color: "#555555", fontWeight: 400 }}>(không bắt buộc)</span></label>
+            <Inp type="tel" value={f.phone} onChange={set("phone")} placeholder="+84 ..." style={{ border: "1.5px solid #555555" }} />
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Mật khẩu * <span style={{ color: "#6e6e6e", fontWeight: 400 }}>(tối thiểu 6 ký tự)</span></label>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Mật khẩu * <span style={{ color: "#555555", fontWeight: 400 }}>(tối thiểu 6 ký tự)</span></label>
             <div style={{ position: "relative" }}>
               <Inp type={showPw ? "text" : "password"} value={f.password} onChange={set("password")} placeholder="Tạo mật khẩu" autoComplete="new-password" required style={{ paddingRight: 44 }} />
               <button type="button" onClick={() => setShowPw(v => !v)}
@@ -129,7 +129,7 @@ export default function SignUpForm() {
 
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#333", marginBottom: 5 }}>Xác nhận mật khẩu *</label>
-            <Inp type={showPw ? "text" : "password"} value={f.confirm} onChange={set("confirm")} placeholder="Nhập lại mật khẩu" autoComplete="new-password" required />
+            <Inp type={showPw ? "text" : "password"} value={f.confirm} onChange={set("confirm")} placeholder="Nhập lại mật khẩu" autoComplete="new-password" required style={{ color: "#555555", border: "1.5px solid #555555"}} />
           </div>
 
           <button type="submit" disabled={loading}

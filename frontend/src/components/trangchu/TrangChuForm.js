@@ -306,7 +306,7 @@ export default function TrangChuForm() {
             </p>
             <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
               <Link href="/Cacbaitoan10" style={{ textDecoration:"none" }}>
-                <Link href="/Cacbaitoan10" style={{ padding:"24px 24px", background:"black", color:"white", borderRadius:10, border:"none", fontSize:17, fontWeight:600, cursor:"pointer" }}>
+                <Link href="/Cacbaitoan10" style={{ padding:"20px 24px", background:"black", color:"white", borderRadius:10, border:"none", fontSize:17, fontWeight:600, cursor:"pointer" }}>
                   Bắt đầu học
                 </Link>
               </Link>
