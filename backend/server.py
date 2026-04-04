@@ -1,65 +1,100 @@
-# backend/server.py
+# backend/server.py  —  DuoMath Unified Backend  (optimised v2)
 # ─────────────────────────────────────────────────────────────────────────────
-# DuoMath & DuoMCB  ·  Unified Backend
-# Handles: Auth (JWT), test/game scores, unified AI chatbot & Vision logic
-#
-# Deploy to Render:
-#   Build command : pip install -r requirements.txt
-#   Start command : gunicorn server:app
-#   Env vars to set in Render dashboard:
-#     JWT_SECRET   → any long random string (e.g. openssl rand -hex 32)
-#     GROQ_API_KEY → your Groq API key
+# Fixes vs v1:
+#   1. Keep-alive self-ping  → prevents Render free-tier cold-start (ERR_CONNECTION_REFUSED)
+#   2. SQLite WAL mode + indexes → faster DB reads/writes
+#   3. Auto-creates session if missing in /api/chat  → no more 404 on stale session
+#   4. max_tokens 512 (↓ from 1024) → faster first-token from Groq
+#   5. Streaming SSE on /api/chat → frontend sees tokens immediately
+#   6. gzip compression (flask-compress) → smaller payloads
+#   7. CORS preflight cached 1h → no repeated OPTIONS round-trips
+#   8. Health endpoint returns DB latency
 # ─────────────────────────────────────────────────────────────────────────────
 
-import os, sqlite3, json, requests, uuid # pyright: ignore[reportMissingModuleSource]
+import os, sqlite3, json, uuid, time, threading
 from datetime import timedelta
-from flask import Flask, request, jsonify, g
+
+import requests as req_lib # pyright: ignore[reportMissingModuleSource]
+from flask import Flask, request, jsonify, g, Response, stream_with_context
 from flask_cors import CORS
 from flask_jwt_extended import ( # pyright: ignore[reportMissingImports]
     JWTManager, create_access_token, create_refresh_token,
-    jwt_required, get_jwt_identity
+    jwt_required, get_jwt_identity,
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
-app = Flask(__name__)
+try:
+    from flask_compress import Compress # pyright: ignore[reportMissingImports]
+    HAS_COMPRESS = True
+except ImportError:
+    HAS_COMPRESS = False
 
-# ── CORS ─────────────────────────────────────────────────────────────────────
+app = Flask(__name__)
+if HAS_COMPRESS:
+    Compress(app)
+
+# CORS with preflight caching
 CORS(app, resources={r"/api/*": {
-    "origins": [
-        "http://localhost:3000",
-        "https://*.vercel.app",
-        "*"
-    ]
+    "origins": ["http://localhost:3000", "https://*.vercel.app", "*"],
+    "max_age": 3600,
 }})
 
-# ── JWT Config ───────────────────────────────────────────────────────────────
+# JWT
 app.config["JWT_SECRET_KEY"]            = os.environ.get("JWT_SECRET", "duomath-dev-secret-CHANGE-IN-PROD")
 app.config["JWT_ACCESS_TOKEN_EXPIRES"]  = timedelta(hours=12)
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
 jwt = JWTManager(app)
 
-# ── DB & API Config ──────────────────────────────────────────────────────────
-DB_PATH = os.path.join(os.path.dirname(__file__), "duomath.db")
+# Constants
+DB_PATH   = os.path.join(os.path.dirname(__file__), "duomath.db")
 GROQ_BASE = "https://api.groq.com/openai/v1"
-GROQ_KEY  = os.environ.get("GROQ_API_KEY", "GROQ_API_KEY")
+GROQ_KEY  = os.environ.get("GROQ_API_KEY", "")
+# Set SELF_URL=https://your-app.onrender.com in Render env vars to enable keep-alive
+SELF_URL  = os.environ.get("SELF_URL", "")
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  DATABASE
-# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Keep-alive thread (fixes ERR_CONNECTION_REFUSED on Render free tier) ─────
+def _keep_alive():
+    """Ping /api/health every 14 min so Render never puts the server to sleep."""
+    if not SELF_URL:
+        return
+    while True:
+        time.sleep(14 * 60)
+        try:
+            req_lib.get(f"{SELF_URL}/api/health", timeout=10)
+        except Exception:
+            pass
+
+threading.Thread(target=_keep_alive, daemon=True).start()
+
+
+# ── Database ──────────────────────────────────────────────────────────────────
+def _make_conn():
+    conn = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES,
+                           check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")     # concurrent reads while writing
+    conn.execute("PRAGMA synchronous=NORMAL")   # faster writes, still crash-safe
+    conn.execute("PRAGMA cache_size=-8000")     # 8 MB page cache
+    conn.execute("PRAGMA temp_store=MEMORY")
+    return conn
+
 
 def get_db():
     if "db" not in g:
-        g.db = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES)
-        g.db.row_factory = sqlite3.Row
+        g.db = _make_conn()
     return g.db
+
 
 @app.teardown_appcontext
 def close_db(_=None):
     db = g.pop("db", None)
-    if db: db.close()
+    if db:
+        db.close()
+
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = _make_conn()
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS users (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,7 +107,6 @@ def init_db():
             avatar_url  TEXT    DEFAULT '',
             created_at  TEXT    DEFAULT (datetime('now'))
         );
-
         CREATE TABLE IF NOT EXISTS test_results (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id     INTEGER NOT NULL,
@@ -86,7 +120,6 @@ def init_db():
             taken_at    TEXT    DEFAULT (datetime('now')),
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
-
         CREATE TABLE IF NOT EXISTS minigame_results (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id     INTEGER NOT NULL,
@@ -97,52 +130,56 @@ def init_db():
             played_at   TEXT    DEFAULT (datetime('now')),
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
-
         CREATE TABLE IF NOT EXISTS sessions (
             session_id  TEXT    PRIMARY KEY,
             user_id     INTEGER,
             history     TEXT    DEFAULT '[]',
             created_at  TEXT    DEFAULT (datetime('now'))
         );
+        CREATE INDEX IF NOT EXISTS idx_test_user  ON test_results(user_id, taken_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_game_user  ON minigame_results(user_id, played_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_session_id ON sessions(session_id);
     """)
     conn.commit()
     conn.close()
 
+
 init_db()
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  HELPERS
-# ─────────────────────────────────────────────────────────────────────────────
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
 def user_dict(row):
-    return {
-        "id": row["id"], "email": row["email"], "username": row["username"],
-        "phone": row["phone"], "school": row["school"], "grade": row["grade"],
-        "avatar_url": row["avatar_url"], "created_at": row["created_at"],
-    }
+    return {"id": row["id"], "email": row["email"], "username": row["username"],
+            "phone": row["phone"], "school": row["school"], "grade": row["grade"],
+            "avatar_url": row["avatar_url"], "created_at": row["created_at"]}
 
 def test_dict(row):
-    return {
-        "id": row["id"], "test_key": row["test_key"], "section": row["section"],
-        "score": row["score"], "total": row["total"],
-        "accuracy": row["accuracy"], "time_spent": row["time_spent"],
-        "answers": json.loads(row["answers"] or "{}"),
-        "taken_at": row["taken_at"],
-    }
+    return {"id": row["id"], "test_key": row["test_key"], "section": row["section"],
+            "score": row["score"], "total": row["total"],
+            "accuracy": row["accuracy"], "time_spent": row["time_spent"],
+            "answers": json.loads(row["answers"] or "{}"), "taken_at": row["taken_at"]}
 
 def game_dict(row):
-    return {
-        "id": row["id"], "lesson_slug": row["lesson_slug"], "mode": row["mode"],
-        "score": row["score"], "total": row["total"], "played_at": row["played_at"],
-    }
+    return {"id": row["id"], "lesson_slug": row["lesson_slug"], "mode": row["mode"],
+            "score": row["score"], "total": row["total"], "played_at": row["played_at"]}
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  AUTH ROUTES
-# ─────────────────────────────────────────────────────────────────────────────
+def groq_headers():
+    return {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
 
+def ensure_session(db, sid: str) -> list:
+    """Return history list. Auto-creates session if not found — prevents stale-session 404."""
+    row = db.execute("SELECT history FROM sessions WHERE session_id=?", (sid,)).fetchone()
+    if row:
+        return json.loads(row["history"] or "[]")
+    db.execute("INSERT INTO sessions (session_id, history) VALUES (?,?)", (sid, "[]"))
+    db.commit()
+    return []
+
+
+# ── Auth routes ───────────────────────────────────────────────────────────────
 @app.route("/api/signup", methods=["POST"])
 def signup():
-    d        = request.get_json(force=True) or {}
+    d = request.get_json(force=True) or {}
     email    = (d.get("email")    or "").strip().lower()
     username = (d.get("username") or "").strip()
     password = (d.get("password") or "").strip()
@@ -161,7 +198,7 @@ def signup():
 
     db.execute(
         "INSERT INTO users (email,username,password,phone,school,grade) VALUES (?,?,?,?,?,?)",
-        (email, username, generate_password_hash(password), phone, school, grade)
+        (email, username, generate_password_hash(password), phone, school, grade),
     )
     db.commit()
     row    = db.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
@@ -169,9 +206,10 @@ def signup():
     rf     = create_refresh_token(identity=str(row["id"]))
     return jsonify({"access_token": access, "refresh_token": rf, "user": user_dict(row)}), 201
 
+
 @app.route("/api/login", methods=["POST"])
 def login():
-    d        = request.get_json(force=True) or {}
+    d = request.get_json(force=True) or {}
     email    = (d.get("email")    or "").strip().lower()
     password = (d.get("password") or "").strip()
 
@@ -187,11 +225,12 @@ def login():
     rf     = create_refresh_token(identity=str(row["id"]))
     return jsonify({"access_token": access, "refresh_token": rf, "user": user_dict(row)})
 
+
 @app.route("/api/refresh", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh_token():
-    uid = get_jwt_identity()
-    return jsonify({"access_token": create_access_token(identity=uid)})
+    return jsonify({"access_token": create_access_token(identity=get_jwt_identity())})
+
 
 @app.route("/api/me", methods=["GET"])
 @jwt_required()
@@ -201,15 +240,12 @@ def me():
     row = db.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
     if not row:
         return jsonify({"error": "User not found."}), 404
-
     tests = db.execute("SELECT * FROM test_results WHERE user_id=? ORDER BY taken_at DESC LIMIT 20", (uid,)).fetchall()
     games = db.execute("SELECT * FROM minigame_results WHERE user_id=? ORDER BY played_at DESC LIMIT 20", (uid,)).fetchall()
+    return jsonify({"user": user_dict(row),
+                    "test_results": [test_dict(t) for t in tests],
+                    "game_results": [game_dict(g) for g in games]})
 
-    return jsonify({
-        "user": user_dict(row),
-        "test_results": [test_dict(t) for t in tests],
-        "game_results": [game_dict(g) for g in games],
-    })
 
 @app.route("/api/me", methods=["PATCH"])
 @jwt_required()
@@ -217,7 +253,6 @@ def update_me():
     uid = int(get_jwt_identity())
     d   = request.get_json(force=True) or {}
     db  = get_db()
-
     allowed = ["username", "phone", "school", "grade", "avatar_url"]
     sets, vals = [], []
     for f in allowed:
@@ -226,7 +261,6 @@ def update_me():
             vals.append(str(d[f]).strip())
     if not sets:
         return jsonify({"error": "Nothing to update."}), 400
-
     vals.append(uid)
     db.execute(f"UPDATE users SET {','.join(sets)} WHERE id=?", vals)
     db.commit()
@@ -234,6 +268,7 @@ def update_me():
     return jsonify({"user": user_dict(row)})
 
 
+# ── Score routes ──────────────────────────────────────────────────────────────
 @app.route("/api/test-result", methods=["POST"])
 @jwt_required()
 def save_test():
@@ -241,18 +276,19 @@ def save_test():
     d   = request.get_json(force=True) or {}
     test_key, section = d.get("test_key", ""), d.get("section", "")
     score, total = int(d.get("score", 0)), int(d.get("total", 0))
-    accuracy = round((score / total * 100) if total else 0, 1)
-    time_spent, answers = int(d.get("time_spent", 0)), json.dumps(d.get("answers", {}))
+    accuracy     = round((score / total * 100) if total else 0, 1)
+    time_spent   = int(d.get("time_spent", 0))
+    answers      = json.dumps(d.get("answers", {}))
 
-    if not test_key or not section: return jsonify({"error": "test_key and section are required."}), 400
+    if not test_key or not section:
+        return jsonify({"error": "test_key and section are required."}), 400
 
     db = get_db()
-    db.execute(
-        "INSERT INTO test_results (user_id,test_key,section,score,total,accuracy,time_spent,answers) VALUES (?,?,?,?,?,?,?,?)",
-        (uid, test_key, section, score, total, accuracy, time_spent, answers)
-    )
+    db.execute("INSERT INTO test_results (user_id,test_key,section,score,total,accuracy,time_spent,answers) VALUES (?,?,?,?,?,?,?,?)",
+               (uid, test_key, section, score, total, accuracy, time_spent, answers))
     db.commit()
     return jsonify({"saved": True, "accuracy": accuracy}), 201
+
 
 @app.route("/api/test-results", methods=["GET"])
 @jwt_required()
@@ -261,20 +297,22 @@ def get_tests():
     rows = get_db().execute("SELECT * FROM test_results WHERE user_id=? ORDER BY taken_at DESC", (uid,)).fetchall()
     return jsonify([test_dict(r) for r in rows])
 
+
 @app.route("/api/minigame-result", methods=["POST"])
 @jwt_required()
 def save_game():
     uid = int(get_jwt_identity())
     d   = request.get_json(force=True) or {}
-    slug, mode = d.get("lesson_slug", ""), d.get("mode", "mc")
+    slug, mode   = d.get("lesson_slug", ""), d.get("mode", "mc")
     score, total = int(d.get("score", 0)), int(d.get("total", 0))
-
-    if not slug: return jsonify({"error": "lesson_slug is required."}), 400
-
+    if not slug:
+        return jsonify({"error": "lesson_slug is required."}), 400
     db = get_db()
-    db.execute("INSERT INTO minigame_results (user_id,lesson_slug,mode,score,total) VALUES (?,?,?,?,?)", (uid, slug, mode, score, total))
+    db.execute("INSERT INTO minigame_results (user_id,lesson_slug,mode,score,total) VALUES (?,?,?,?,?)",
+               (uid, slug, mode, score, total))
     db.commit()
     return jsonify({"saved": True}), 201
+
 
 @app.route("/api/minigame-results", methods=["GET"])
 @jwt_required()
@@ -284,10 +322,7 @@ def get_games():
     return jsonify([game_dict(r) for r in rows])
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  UNIFIED CHATBOT SESSION ROUTES 
-# ─────────────────────────────────────────────────────────────────────────────
-
+# ── Session routes ────────────────────────────────────────────────────────────
 @app.route("/api/session/new", methods=["POST"])
 def new_session():
     sid = str(uuid.uuid4())
@@ -296,158 +331,211 @@ def new_session():
     db.commit()
     return jsonify({"session_id": sid, "message": "Session created."})
 
+
 @app.route("/api/session/<session_id>/reset", methods=["POST"])
 def reset_session(session_id):
-    db = get_db()
-    row = db.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
+    db  = get_db()
+    row = db.execute("SELECT session_id FROM sessions WHERE session_id=?", (session_id,)).fetchone()
     if row:
         db.execute("UPDATE sessions SET history=? WHERE session_id=?", ("[]", session_id))
         db.commit()
         return jsonify({"message": "Session reset."})
     return jsonify({"error": "Session not found."}), 404
 
+
 @app.route("/api/session/<session_id>/history", methods=["GET"])
 def get_history(session_id):
-    db = get_db()
-    row = db.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
+    db  = get_db()
+    row = db.execute("SELECT history FROM sessions WHERE session_id=?", (session_id,)).fetchone()
     if row:
         return jsonify({"history": json.loads(row["history"] or "[]")})
     return jsonify({"error": "Session not found."}), 404
 
+
+# ── Chat (streaming + auto-session) ──────────────────────────────────────────
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    """Unified chat route handling both text and images."""
-    d = request.get_json(force=True) or {}
-    session_id = d.get("session_id", "")
-    user_message = d.get("message", "").strip()
-    image_data = d.get("image")  # Optional field
+    d            = request.get_json(force=True) or {}
+    session_id   = d.get("session_id") or str(uuid.uuid4())  # auto-generate if missing
+    user_message = (d.get("message") or "").strip()
+    image_data   = d.get("image")
+    stream_mode  = d.get("stream", True)
 
-    if not session_id or not user_message:
-        return jsonify({"error": "session_id and message are required."}), 400
+    if not user_message:
+        return jsonify({"error": "message is required."}), 400
 
-    db = get_db()
-    row = db.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
-    if not row:
-        return jsonify({"error": "Invalid session."}), 404
+    db      = get_db()
+    history = ensure_session(db, session_id)  # auto-creates session if needed
 
-    history = json.loads(row["history"] or "[]")
-
-    # --- Logic for Image vs. Text ---
+    # Build content
     if image_data:
-        # 1. Parse Image (Vision Mode)
         if "," in image_data:
-            header, b64_content = image_data.split(",", 1)
-            media_type = header.split(":")[1].split(";")[0]
+            header, b64 = image_data.split(",", 1)
+            media_type  = header.split(":")[1].split(";")[0]
         else:
-            b64_content = image_data
-            media_type = "image/jpeg"
+            b64, media_type = image_data, "image/jpeg"
 
         user_content = [
-            {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{b64_content}"}},
-            {"type": "text", "text": user_message}
+            {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{b64}"}},
+            {"type": "text",      "text": user_message},
         ]
-        
-        # Use Vision Model and Vision-focused Prompt
-        model = "meta-llama/llama-4-scout-17b-16e-instruct"
+        model         = "meta-llama/llama-4-scout-17b-16e-instruct"
         system_prompt = (
-            "You are DuoMCB, a bilingual (English & Vietnamese) AI tutor. "
-            "Analyze the image carefully and use the Socratic method: guide with "
-            "questions rather than giving the full answer immediately."
+            "You are DuoMCB, a bilingual (English & Vietnamese) math tutor for Grade 10-12. "
+            "Analyse the image carefully. Use the Socratic method: guide with questions, "
+            "not full answers. Be concise (max 3 sentences per turn)."
         )
-        # Store a simple text label in history to save database space
-        history.append({"role": "user", "content": f"[Image uploaded] {user_message}"})
+        history.append({"role": "user", "content": f"[Image] {user_message}"})
     else:
-        # 2. Text-only Mode
-        user_content = user_message
-        model = "llama-3.3-70b-versatile"
+        user_content  = user_message
+        model         = "llama-3.3-70b-versatile"
         system_prompt = (
             "You are DuoMCB, a bilingual (Vietnamese-English) math tutor for Grade 10-12 students. "
-            "Use the Socratic method: guide with questions. Be encouraging and concise."
+            "Use the Socratic method: ask guiding questions rather than giving complete answers. "
+            "Be encouraging and concise (max 3 sentences per turn unless asked for more)."
         )
         history.append({"role": "user", "content": user_message})
 
-    # --- API Request to Groq ---
+    messages = [{"role": "system", "content": system_prompt}] + history[-10:]
+    messages[-1]["content"] = user_content
+
     payload = {
-        "model": model,
-        "messages": [{"role": "system", "content": system_prompt}] + history[-10:],
-        "max_tokens": 1024,
+        "model":       model,
+        "messages":    messages,
+        "max_tokens":  512,    # reduced from 1024 for faster first-token latency
         "temperature": 0.7,
+        "stream":      stream_mode,
     }
 
-    # Override user content for the actual API call if it's an image
-    payload["messages"][-1]["content"] = user_content
+    # Streaming path
+    if stream_mode:
+        def generate():
+            full_reply = []
+            try:
+                with req_lib.post(
+                    f"{GROQ_BASE}/chat/completions",
+                    headers=groq_headers(),
+                    json=payload,
+                    stream=True,
+                    timeout=30,
+                ) as resp:
+                    resp.raise_for_status()
+                    for raw_line in resp.iter_lines():
+                        if not raw_line:
+                            continue
+                        line = raw_line.decode("utf-8") if isinstance(raw_line, bytes) else raw_line
+                        if line.startswith("data: "):
+                            line = line[6:]
+                        if line == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(line)
+                            token = chunk["choices"][0]["delta"].get("content", "")
+                            if token:
+                                full_reply.append(token)
+                                yield f"data: {json.dumps({'token': token, 'session_id': session_id})}\n\n"
+                        except (json.JSONDecodeError, KeyError, IndexError):
+                            continue
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                return
 
-    try:
-        resp = requests.post(
-            f"{GROQ_BASE}/chat/completions", 
-            headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}, 
-            json=payload, 
-            timeout=30
+            # Persist after stream completes
+            reply_text = "".join(full_reply)
+            history.append({"role": "assistant", "content": reply_text})
+            db.execute("UPDATE sessions SET history=? WHERE session_id=?",
+                       (json.dumps(history[-40:]), session_id))
+            db.commit()
+            yield f"data: {json.dumps({'done': True, 'session_id': session_id, 'history_length': len(history)})}\n\n"
+
+        return Response(
+            stream_with_context(generate()),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control":               "no-cache",
+                "X-Accel-Buffering":           "no",
+                "Access-Control-Allow-Origin": "*",
+            },
         )
+
+    # Non-streaming fallback
+    try:
+        resp  = req_lib.post(f"{GROQ_BASE}/chat/completions",
+                              headers=groq_headers(),
+                              json={**payload, "stream": False},
+                              timeout=30)
         resp.raise_for_status()
         reply = resp.json()["choices"][0]["message"]["content"]
     except Exception as e:
-        return jsonify({"error": True, "reply": f"AI unavailable: {str(e)}"}), 502
+        return jsonify({"error": True, "reply": f"AI unavailable: {e}"}), 502
 
-    # --- Save & Return ---
     history.append({"role": "assistant", "content": reply})
-    db.execute("UPDATE sessions SET history=? WHERE session_id=?", (json.dumps(history[-40:]), session_id))
+    db.execute("UPDATE sessions SET history=? WHERE session_id=?",
+               (json.dumps(history[-40:]), session_id))
     db.commit()
-
     return jsonify({"reply": reply, "session_id": session_id, "history_length": len(history)})
 
+
+# ── Translate (DuoTranslator) ─────────────────────────────────────────────────
 @app.route("/api/translate", methods=["POST"])
 def translate():
-    """Lightweight translation endpoint used by DuoTranslator"""
-    d          = request.get_json(force=True) or {}
-    session_id = d.get("session_id", "")
-    text       = d.get("text", "")
-
-    if not text: return jsonify({"error": "text is required."}), 400
+    d    = request.get_json(force=True) or {}
+    text = (d.get("text") or "").strip()[:500]  # cap input to 500 chars
+    if not text:
+        return jsonify({"error": "text is required."}), 400
 
     prompt = (
-        f'Translate the following English math text to Vietnamese and analyse it. '
-        f'Reply ONLY with valid JSON (no markdown fences) in this exact format:\n'
-        f'{{"translation":"...","summary":"...","words":[{{"word":"...","type":"...","pronunciation":"...","vietnamese":"...","example":"..."}}]}}\n\n'
-        f'Text to translate: {text}'
+        "Translate this English math text to Vietnamese. "
+        "Reply ONLY with JSON (no markdown): "
+        '{"translation":"...","summary":"...","words":['
+        '{"word":"...","type":"...","pronunciation":"...","vietnamese":"...","example":"..."}]}\n\n'
+        f"Text: {text}"
     )
-
     payload = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [
-            {"role": "system", "content": "You are a precise JSON-only translation API. Never output anything except the JSON object requested."},
+        "model":       "llama-3.3-70b-versatile",
+        "messages":    [
+            {"role": "system", "content": "You are a JSON-only translation API. Output only the JSON object."},
             {"role": "user",   "content": prompt},
         ],
-        "max_tokens": 800,
-        "temperature": 0.3,
+        "max_tokens":  600,
+        "temperature": 0.2,
     }
 
     try:
-        resp = requests.post(f"{GROQ_BASE}/chat/completions", headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}, json=payload, timeout=20)
+        resp  = req_lib.post(f"{GROQ_BASE}/chat/completions",
+                              headers=groq_headers(), json=payload, timeout=20)
         resp.raise_for_status()
-        raw = resp.json()["choices"][0]["message"]["content"]
-        clean = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+        raw   = resp.json()["choices"][0]["message"]["content"]
+        clean = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         return jsonify(json.loads(clean))
     except json.JSONDecodeError:
-        return jsonify({"error": True, "raw": raw if "raw" in dir() else "parse error"})
+        return jsonify({"error": True, "raw": raw})
     except Exception as e:
         return jsonify({"error": True, "raw": str(e)}), 502
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  HEALTH
-# ─────────────────────────────────────────────────────────────────────────────
 
+# ── Health ────────────────────────────────────────────────────────────────────
 @app.route("/api/health")
 def health():
+    t0 = time.perf_counter()
+    try:
+        get_db().execute("SELECT 1").fetchone()
+        db_ms, db_ok = round((time.perf_counter() - t0) * 1000, 2), True
+    except Exception:
+        db_ms, db_ok = -1, False
     return jsonify({
-        "status": "ok", 
-        "service": "DuoMath Unified API", 
-        "text_model": "llama-3.3-70b-versatile", 
-        "vision_model": "meta-llama/llama-4-scout-17b-16e-instruct",
-        "provider": "Groq"
+        "status":        "ok" if db_ok else "degraded",
+        "service":       "DuoMath API v2",
+        "db_latency_ms": db_ms,
+        "keep_alive":    bool(SELF_URL),
+        "text_model":    "llama-3.3-70b-versatile",
+        "vision_model":  "meta-llama/llama-4-scout-17b-16e-instruct",
     })
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    print(f"DuoMath Unified Server running at http://localhost:{port}")
-    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_ENV") != "production")
+    print(f"DuoMath API v2 → http://localhost:{port}")
+    app.run(host="0.0.0.0", port=port,
+            debug=os.environ.get("FLASK_ENV") != "production",
+            threaded=True)

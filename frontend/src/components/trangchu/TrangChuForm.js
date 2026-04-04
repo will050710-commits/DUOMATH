@@ -202,7 +202,7 @@ export default function TrangChuForm() {
         <header className="reveal" data-reveal
           style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"20px 20px", position:"relative", zIndex:300, boxShadow:"0 4px 12px rgba(0,0,0,0.1)", background:"linear-gradient(135deg, #00d8fe, #13b0ff)", color:"white" }}>
 
-          <div style={{ fontWeight:"bold", fontSize:22, color:"#0B4F5C", letterSpacing:1 }}>DUOSTEAM</div>
+          <div style={{ fontWeight:"bold", fontSize:22, color:"#0B4F5C", letterSpacing:1 }}>DUOMATH</div>
 
           <nav style={{ display:"flex", alignItems:"center", gap:16, fontSize:15, position:"relative", zIndex:300 }}>
 
@@ -306,7 +306,7 @@ export default function TrangChuForm() {
             </p>
             <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
               <Link href="/Cacbaitoan10" style={{ textDecoration:"none" }}>
-                <button href="/Cacbaitoan10" style={{ padding:"14px 24px", background:"black", color:"white", borderRadius:10, border:"none", fontSize:17, fontWeight:600, cursor:"pointer" }}>
+                <button href="/Cacbaitoan" style={{ padding:"14px 24px", background:"black", color:"white", borderRadius:10, border:"none", fontSize:17, fontWeight:600, cursor:"pointer" }}>
                   Start 
                 </button>
               </Link>
