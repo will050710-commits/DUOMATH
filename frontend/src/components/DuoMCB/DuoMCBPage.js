@@ -3,7 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import styles from "./DuoMCBPage.module.css";
 import Image from "next/image";
 import { createSession, chat } from "./duoServer";
-
+import Link from "next/link";
+import TrangChuForm from "../trangchu/TrangChuForm";
 const SUGGESTED = [
   { icon: "📐", text: "Solve x² - 5x + 6 = 0 step by step" },
   { icon: "📊", text: "Explain mean, median and standard deviation" },
@@ -166,6 +167,10 @@ export default function DuoMCBPage() {
               ))}
             </div>
             <div className={styles.sidebarFooter}>
+              <Link className={styles.modelBadge} href={TrangChuForm}>
+                <span className={styles.modelDot} />
+                go back 
+              </Link>
               <div className={styles.modelBadge}>
                 <span className={styles.modelDot} />
                 llama-3.3-70b
