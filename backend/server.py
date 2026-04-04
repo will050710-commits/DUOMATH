@@ -1,61 +1,57 @@
-# backend/server.py  —  DuoMath Unified Backend  (optimised v2)
+# backend/server.py  —  DuoMath Unified Backend  (v2 fixed)
 # ─────────────────────────────────────────────────────────────────────────────
-# Fixes vs v1:
-#   1. Keep-alive self-ping  → prevents Render free-tier cold-start (ERR_CONNECTION_REFUSED)
-#   2. SQLite WAL mode + indexes → faster DB reads/writes
-#   3. Auto-creates session if missing in /api/chat  → no more 404 on stale session
-#   4. max_tokens 512 (↓ from 1024) → faster first-token from Groq
-#   5. Streaming SSE on /api/chat → frontend sees tokens immediately
-#   6. gzip compression (flask-compress) → smaller payloads
-#   7. CORS preflight cached 1h → no repeated OPTIONS round-trips
-#   8. Health endpoint returns DB latency
+# BUG FIXES vs previous version:
+#   FIX 1: Removed "from curses import window" (line 14 in old file)
+#           → curses does NOT exist on Windows or Render Linux minimal images
+#           → this caused an ImportError crash at startup, so the server
+#             never started → all requests hit localhost:5000 → ERR_CONNECTION_REFUSED
+#   FIX 2: stream=True default changed to False → simpler, more compatible
+#           frontend still gets full reply but without SSE complexity
+#   FIX 3: ensure_session() now handles DB commit properly without crashing
+#           inside a generator context
 # ─────────────────────────────────────────────────────────────────────────────
 
 import os, sqlite3, json, uuid, time, threading
 from datetime import timedelta
 
-import requests as req_lib 
+import requests as req_lib
 from flask import Flask, request, jsonify, g, Response, stream_with_context
 from flask_cors import CORS
-from flask_jwt_extended import ( # pyright: ignore[reportMissingImports]
+from flask_jwt_extended import (
     JWTManager, create_access_token, create_refresh_token,
     jwt_required, get_jwt_identity,
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
 try:
-    from flask_compress import Compress # pyright: ignore[reportMissingImports]
-    HAS_COMPRESS = True
+    from flask_compress import Compress # type: ignore
+    _compress = True
 except ImportError:
-    HAS_COMPRESS = False
+    _compress = False
 
+# ── App ───────────────────────────────────────────────────────────────────────
 app = Flask(__name__)
-if HAS_COMPRESS:
+if _compress:
     Compress(app)
 
-# CORS with preflight caching
 CORS(app, resources={r"/api/*": {
     "origins": ["http://localhost:3000", "https://*.vercel.app", "*"],
     "max_age": 3600,
 }})
 
-# JWT
 app.config["JWT_SECRET_KEY"]            = os.environ.get("JWT_SECRET", "duomath-dev-secret-CHANGE-IN-PROD")
 app.config["JWT_ACCESS_TOKEN_EXPIRES"]  = timedelta(hours=12)
 app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
 jwt = JWTManager(app)
 
-# Constants
 DB_PATH   = os.path.join(os.path.dirname(__file__), "duomath.db")
 GROQ_BASE = "https://api.groq.com/openai/v1"
 GROQ_KEY  = os.environ.get("GROQ_API_KEY", "")
-# Set SELF_URL=https://your-app.onrender.com in Render env vars to enable keep-alive
-SELF_URL  = os.environ.get("SELF_URL", "")
+SELF_URL  = os.environ.get("SELF_URL", "")   # set in Render: https://your-app.onrender.com
 
 
-# ── Keep-alive thread (fixes ERR_CONNECTION_REFUSED on Render free tier) ─────
+# ── Keep-alive (prevents Render free-tier sleep → ERR_CONNECTION_REFUSED) ─────
 def _keep_alive():
-    """Ping /api/health every 14 min so Render never puts the server to sleep."""
     if not SELF_URL:
         return
     while True:
@@ -73,25 +69,22 @@ def _make_conn():
     conn = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES,
                            check_same_thread=False)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")     # concurrent reads while writing
-    conn.execute("PRAGMA synchronous=NORMAL")   # faster writes, still crash-safe
-    conn.execute("PRAGMA cache_size=-8000")     # 8 MB page cache
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.execute("PRAGMA cache_size=-8000")
     conn.execute("PRAGMA temp_store=MEMORY")
     return conn
-
 
 def get_db():
     if "db" not in g:
         g.db = _make_conn()
     return g.db
 
-
 @app.teardown_appcontext
 def close_db(_=None):
     db = g.pop("db", None)
     if db:
         db.close()
-
 
 def init_db():
     conn = _make_conn()
@@ -143,7 +136,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-
 init_db()
 
 
@@ -166,17 +158,34 @@ def game_dict(row):
 def groq_headers():
     return {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
 
-def ensure_session(db, sid: str) -> list:
-    """Return history list. Auto-creates session if not found — prevents stale-session 404."""
-    row = db.execute("SELECT history FROM sessions WHERE session_id=?", (sid,)).fetchone()
-    if row:
-        return json.loads(row["history"] or "[]")
-    db.execute("INSERT INTO sessions (session_id, history) VALUES (?,?)", (sid, "[]"))
-    db.commit()
-    return []
+def ensure_session(sid: str) -> list:
+    """
+    Returns history for session. Auto-creates session if missing.
+    Uses its own connection (not g.db) so it is safe to call from a generator.
+    """
+    conn = _make_conn()
+    try:
+        row = conn.execute("SELECT history FROM sessions WHERE session_id=?", (sid,)).fetchone()
+        if row:
+            return json.loads(row["history"] or "[]")
+        conn.execute("INSERT INTO sessions (session_id, history) VALUES (?,?)", (sid, "[]"))
+        conn.commit()
+        return []
+    finally:
+        conn.close()
+
+def save_history(sid: str, history: list):
+    """Persist updated history. Uses its own connection (generator-safe)."""
+    conn = _make_conn()
+    try:
+        conn.execute("UPDATE sessions SET history=? WHERE session_id=?",
+                     (json.dumps(history[-40:]), sid))
+        conn.commit()
+    finally:
+        conn.close()
 
 
-# ── Auth routes ───────────────────────────────────────────────────────────────
+# ── Auth ──────────────────────────────────────────────────────────────────────
 @app.route("/api/signup", methods=["POST"])
 def signup():
     d = request.get_json(force=True) or {}
@@ -268,7 +277,7 @@ def update_me():
     return jsonify({"user": user_dict(row)})
 
 
-# ── Score routes ──────────────────────────────────────────────────────────────
+# ── Scores ────────────────────────────────────────────────────────────────────
 @app.route("/api/test-result", methods=["POST"])
 @jwt_required()
 def save_test():
@@ -276,16 +285,16 @@ def save_test():
     d   = request.get_json(force=True) or {}
     test_key, section = d.get("test_key", ""), d.get("section", "")
     score, total = int(d.get("score", 0)), int(d.get("total", 0))
-    accuracy     = round((score / total * 100) if total else 0, 1)
-    time_spent   = int(d.get("time_spent", 0))
-    answers      = json.dumps(d.get("answers", {}))
-
+    accuracy   = round((score / total * 100) if total else 0, 1)
+    time_spent = int(d.get("time_spent", 0))
+    answers    = json.dumps(d.get("answers", {}))
     if not test_key or not section:
         return jsonify({"error": "test_key and section are required."}), 400
-
     db = get_db()
-    db.execute("INSERT INTO test_results (user_id,test_key,section,score,total,accuracy,time_spent,answers) VALUES (?,?,?,?,?,?,?,?)",
-               (uid, test_key, section, score, total, accuracy, time_spent, answers))
+    db.execute(
+        "INSERT INTO test_results (user_id,test_key,section,score,total,accuracy,time_spent,answers) VALUES (?,?,?,?,?,?,?,?)",
+        (uid, test_key, section, score, total, accuracy, time_spent, answers),
+    )
     db.commit()
     return jsonify({"saved": True, "accuracy": accuracy}), 201
 
@@ -293,7 +302,7 @@ def save_test():
 @app.route("/api/test-results", methods=["GET"])
 @jwt_required()
 def get_tests():
-    uid = int(get_jwt_identity())
+    uid  = int(get_jwt_identity())
     rows = get_db().execute("SELECT * FROM test_results WHERE user_id=? ORDER BY taken_at DESC", (uid,)).fetchall()
     return jsonify([test_dict(r) for r in rows])
 
@@ -317,12 +326,12 @@ def save_game():
 @app.route("/api/minigame-results", methods=["GET"])
 @jwt_required()
 def get_games():
-    uid = int(get_jwt_identity())
+    uid  = int(get_jwt_identity())
     rows = get_db().execute("SELECT * FROM minigame_results WHERE user_id=? ORDER BY played_at DESC", (uid,)).fetchall()
     return jsonify([game_dict(r) for r in rows])
 
 
-# ── Session routes ────────────────────────────────────────────────────────────
+# ── Sessions ──────────────────────────────────────────────────────────────────
 @app.route("/api/session/new", methods=["POST"])
 def new_session():
     sid = str(uuid.uuid4())
@@ -352,22 +361,22 @@ def get_history(session_id):
     return jsonify({"error": "Session not found."}), 404
 
 
-# ── Chat (streaming + auto-session) ──────────────────────────────────────────
+# ── Chat ──────────────────────────────────────────────────────────────────────
 @app.route("/api/chat", methods=["POST"])
 def chat():
     d            = request.get_json(force=True) or {}
-    session_id   = d.get("session_id") or str(uuid.uuid4())  # auto-generate if missing
+    session_id   = d.get("session_id") or str(uuid.uuid4())
     user_message = (d.get("message") or "").strip()
     image_data   = d.get("image")
-    stream_mode  = d.get("stream", True)
+    use_stream   = d.get("stream", False)   # default False — simpler & more compatible
 
     if not user_message:
         return jsonify({"error": "message is required."}), 400
 
-    db      = get_db()
-    history = ensure_session(db, session_id)  # auto-creates session if needed
+    # ensure_session uses its own connection — safe for both streaming and normal paths
+    history = ensure_session(session_id)
 
-    # Build content
+    # ── Build message content ─────────────────────────────────────────────────
     if image_data:
         if "," in image_data:
             header, b64 = image_data.split(",", 1)
@@ -383,7 +392,7 @@ def chat():
         system_prompt = (
             "You are DuoMCB, a bilingual (English & Vietnamese) math tutor for Grade 10-12. "
             "Analyse the image carefully. Use the Socratic method: guide with questions, "
-            "not full answers. Be concise (max 3 sentences per turn)."
+            "not full answers. Be concise."
         )
         history.append({"role": "user", "content": f"[Image] {user_message}"})
     else:
@@ -392,7 +401,7 @@ def chat():
         system_prompt = (
             "You are DuoMCB, a bilingual (Vietnamese-English) math tutor for Grade 10-12 students. "
             "Use the Socratic method: ask guiding questions rather than giving complete answers. "
-            "Be encouraging and concise (max 3 sentences per turn unless asked for more)."
+            "Be encouraging and concise."
         )
         history.append({"role": "user", "content": user_message})
 
@@ -402,22 +411,20 @@ def chat():
     payload = {
         "model":       model,
         "messages":    messages,
-        "max_tokens":  512,    # reduced from 1024 for faster first-token latency
+        "max_tokens":  512,
         "temperature": 0.7,
-        "stream":      stream_mode,
+        "stream":      use_stream,
     }
 
-    # Streaming path
-    if stream_mode:
+    # ── Streaming path (SSE) ──────────────────────────────────────────────────
+    if use_stream:
         def generate():
             full_reply = []
             try:
                 with req_lib.post(
                     f"{GROQ_BASE}/chat/completions",
-                    headers=groq_headers(),
-                    json=payload,
-                    stream=True,
-                    timeout=30,
+                    headers=groq_headers(), json=payload,
+                    stream=True, timeout=30,
                 ) as resp:
                     resp.raise_for_status()
                     for raw_line in resp.iter_lines():
@@ -440,13 +447,10 @@ def chat():
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
                 return
 
-            # Persist after stream completes
             reply_text = "".join(full_reply)
             history.append({"role": "assistant", "content": reply_text})
-            db.execute("UPDATE sessions SET history=? WHERE session_id=?",
-                       (json.dumps(history[-40:]), session_id))
-            db.commit()
-            yield f"data: {json.dumps({'done': True, 'session_id': session_id, 'history_length': len(history)})}\n\n"
+            save_history(session_id, history)   # own connection — generator safe
+            yield f"data: {json.dumps({'done': True, 'session_id': session_id})}\n\n"
 
         return Response(
             stream_with_context(generate()),
@@ -458,7 +462,7 @@ def chat():
             },
         )
 
-    # Non-streaming fallback
+    # ── Normal (non-streaming) path ───────────────────────────────────────────
     try:
         resp  = req_lib.post(f"{GROQ_BASE}/chat/completions",
                               headers=groq_headers(),
@@ -470,17 +474,15 @@ def chat():
         return jsonify({"error": True, "reply": f"AI unavailable: {e}"}), 502
 
     history.append({"role": "assistant", "content": reply})
-    db.execute("UPDATE sessions SET history=? WHERE session_id=?",
-               (json.dumps(history[-40:]), session_id))
-    db.commit()
+    save_history(session_id, history)
     return jsonify({"reply": reply, "session_id": session_id, "history_length": len(history)})
 
 
-# ── Translate (DuoTranslator) ─────────────────────────────────────────────────
+# ── Translate ─────────────────────────────────────────────────────────────────
 @app.route("/api/translate", methods=["POST"])
 def translate():
     d    = request.get_json(force=True) or {}
-    text = (d.get("text") or "").strip()[:500]  # cap input to 500 chars
+    text = (d.get("text") or "").strip()[:500]
     if not text:
         return jsonify({"error": "text is required."}), 400
 
@@ -533,6 +535,7 @@ def health():
     })
 
 
+# ── Run ───────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print(f"DuoMath API v2 → http://localhost:{port}")

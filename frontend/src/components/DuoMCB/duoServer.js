@@ -1,116 +1,94 @@
-// Shared server helper for DuoMCB components
-const DEFAULT_BASE =
-  typeof window !== "undefined" && window.__DUO_API_BASE
-    ? window.__DUO_API_BASE
-    : "http://localhost:5000";
+/* eslint-disable import/no-anonymous-default-export */
+// frontend/src/components/DuoMCB/duoServer.js
+//
+// FIX: was hardcoded to "http://localhost:5000"
+// NOW: reads NEXT_PUBLIC_BACKEND_URL from environment variable first,
+//      falls back to localhost only for local development.
+//
+// ── Setup ────────────────────────────────────────────────────────────────────
+// Vercel dashboard → Settings → Environment Variables → add:
+//   NEXT_PUBLIC_BACKEND_URL = https://your-app.onrender.com
+//
+// Local .env.local → add:
+//   NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
+// ─────────────────────────────────────────────────────────────────────────────
 
-function baseUrl() {
-  try { return DEFAULT_BASE; } catch { return "http://localhost:5000"; }
-}
+const BASE_URL =
+  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_BACKEND_URL) ||
+  (typeof window  !== "undefined" && window.__DUO_API_BASE) ||
+  "http://localhost:5000";
 
+// ── Session ───────────────────────────────────────────────────────────────────
 export async function createSession() {
   try {
-    const res = await fetch(`${baseUrl()}/api/session/new`, { method: "POST" });
-    if (!res.ok) throw new Error("bad response");
+    const res = await fetch(`${BASE_URL}/api/session/new`, { method: "POST" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     return data.session_id;
-  } catch {
+  } catch (e) {
+    console.warn("[DuoMCB] createSession failed:", e.message);
     return null;
   }
 }
 
-export async function chat(session_id, message, extra = {}) {
+// ── Chat (normal, non-streaming) ──────────────────────────────────────────────
+export async function chat(session_id, message) {
   try {
-    const res = await fetch(`${baseUrl()}/api/chat`, {
+    const res = await fetch(`${BASE_URL}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id, message, stream: false, ...extra }),
+      body: JSON.stringify({ session_id, message, stream: false }),
     });
-    if (!res.ok) throw new Error("bad response");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
-  } catch {
+  } catch (e) {
+    console.warn("[DuoMCB] chat failed:", e.message);
     return { error: true, message: "server-offline" };
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// translateText
-//
-// Sends a strict prompt that forces the AI to return EXACTLY the JSON shape
-// that DuoTranslate.js expects. Without this, the model returns free text or
-// uses different key names (e.g. "text" instead of "translation").
-// ─────────────────────────────────────────────────────────────────────────────
-export async function translateText(session_id, selectedText) {
-  const prompt = `You are a Vietnamese language assistant. Translate the following English text into Vietnamese and analyze it word by word.
-
-TEXT TO TRANSLATE:
-"${selectedText}"
-
-YOU MUST respond with ONLY a valid JSON object — no markdown, no code fences, no explanation text before or after. The JSON must use EXACTLY these keys:
-
-{
-  "translation": "<full Vietnamese translation of the text>",
-  "summary": "<one sentence explaining the meaning in Vietnamese context>",
-  "words": [
-    {
-      "word": "<English word>",
-      "type": "<one of: noun, verb, adj, adv, prep, conj>",
-      "pronunciation": "<IPA or phonetic, e.g. /wɜːrd/>",
-      "vietnamese": "<Vietnamese translation of just this word>",
-      "example": "<short example sentence using this word in English>"
-    }
-  ]
-}
-
-Only include content words in the words array (skip articles like 'a', 'the', 'an' and short prepositions unless important). Respond with the raw JSON only.`;
-
-  const res = await chat(session_id, prompt);
-
-  if (res.error) {
-    return { error: true, raw: "Connection failed. Make sure server.py is running." };
-  }
-
-  const raw = res.reply || res.message || res.text || "";
-
-  if (!raw) {
-    return { error: true, raw: "Server returned an empty reply. Check server.py logs." };
-  }
-
-  // Strip markdown code fences if the model wrapped the JSON anyway
-  const stripped = raw
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .trim();
-
-  // Extract the first {...} block
-  const jsonMatch = stripped.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    return {
-      error: true,
-      raw: `Could not find JSON in server reply.\n\nRaw response was:\n${raw.slice(0, 400)}`,
-    };
-  }
-
+// ── Chat with image (Vision AI) ───────────────────────────────────────────────
+export async function chatWithImage(session_id, message, imageBase64) {
   try {
-    const parsed = JSON.parse(jsonMatch[0]);
-
-    // Validate required keys
-    if (!parsed.translation) {
-      return {
-        error: true,
-        raw: `JSON parsed but missing 'translation' key.\n\nGot keys: ${Object.keys(parsed).join(", ")}\n\nFull response:\n${JSON.stringify(parsed, null, 2).slice(0, 400)}`,
-      };
-    }
-
-    return parsed;
+    const res = await fetch(`${BASE_URL}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id, message, image: imageBase64, stream: false }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
   } catch (e) {
-    return {
-      error: true,
-      raw: `JSON parse failed: ${e.message}\n\nRaw content:\n${jsonMatch[0].slice(0, 400)}`,
-    };
+    console.warn("[DuoMCB] chatWithImage failed:", e.message);
+    return { error: true, message: "server-offline" };
   }
 }
 
-// eslint-disable-next-line import/no-anonymous-default-export
-export default { createSession, chat, translateText };
+// ── Translate (DuoTranslator) ─────────────────────────────────────────────────
+export async function translateText(session_id, text) {
+  try {
+    const res = await fetch(`${BASE_URL}/api/translate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id, text }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.error) return { error: true, raw: data.raw || "Translation failed" };
+    return data;
+  } catch (e) {
+    console.warn("[DuoMCB] translateText failed:", e.message);
+    return { error: true, raw: "Connection failed. Check NEXT_PUBLIC_BACKEND_URL." };
+  }
+}
+
+// ── Health check ──────────────────────────────────────────────────────────────
+export async function checkHealth() {
+  try {
+    const res = await fetch(`${BASE_URL}/api/health`, { method: "GET" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export default { createSession, chat, chatWithImage, translateText, checkHealth };
