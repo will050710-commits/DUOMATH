@@ -167,10 +167,6 @@ export default function DuoMCBPage() {
               ))}
             </div>
             <div className={styles.sidebarFooter}>
-              <Link className={styles.modelBadge} href={TrangChuForm}>
-                <span className={styles.modelDot} />
-                go back 
-              </Link>
               <div className={styles.modelBadge}>
                 <span className={styles.modelDot} />
                 llama-3.3-70b
@@ -185,6 +181,7 @@ export default function DuoMCBPage() {
         <header className={styles.header}>
           <span className={styles.headerTitle}>DuoMCB</span>
           <span className={styles.headerSub}>Bilingual AI Tutor</span>
+          <div className={styles.headerActions}> <Link href="/">Go back</Link></div>
         </header>
 
         <div className={styles.chatArea}>
