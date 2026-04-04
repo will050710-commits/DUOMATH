@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import styles from "./DuoMCBPage.module.css";
 import Image from "next/image";
+import { createSession, chat } from "./duoServer";
 
 const SUGGESTED = [
   { icon: "📐", text: "Solve x² - 5x + 6 = 0 step by step" },
@@ -32,21 +33,15 @@ export default function DuoMCBPage() {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
   async function initSession() {
-    try {
-      const res = await fetch("http://localhost:5000/api/session/new", { method: "POST" });
-      const data = await res.json();
-      setSessionId(data.session_id);
-    } catch {
-      setSessionId("offline-" + Date.now());
-    }
+    const sid = await createSession();
+    setSessionId(sid || "offline-" + Date.now());
   }
 
   async function ensureSession() {
     let sid = sessionId;
     if (!sid || sid.startsWith("offline-")) {
-      const res = await fetch("http://localhost:5000/api/session/new", { method: "POST" });
-      const data = await res.json();
-      sid = data.session_id;
+      sid = await createSession();
+      if (!sid) sid = "offline-" + Date.now();
       setSessionId(sid);
     }
     return sid;
@@ -80,12 +75,8 @@ export default function DuoMCBPage() {
     const sid = await ensureSession();
 
     try {
-      const res = await fetch("http://localhost:5000/api/chat-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sid, message: modeText, image: imageBase64 }),
-      });
-      const data = await res.json();
+      const data = await chat(sid, modeText, { image: imageBase64 });
+      if (data.error) throw new Error("bad response");
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply || data.error, id: Date.now() + 1 }]);
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "⚠️ Không thể xử lý ảnh. Kiểm tra server.py đang chạy.", id: Date.now() + 1 }]);
@@ -105,12 +96,8 @@ export default function DuoMCBPage() {
     setMessages((prev) => [...prev, { role: "user", content: msg, id: Date.now() }]);
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sid, message: msg }),
-      });
-      const data = await res.json();
+      const data = await chat(sid, msg);
+      if (data.error) throw new Error("bad response");
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply, id: Date.now() + 1 }]);
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "⚠️ Could not connect to DuoMCB server.", id: Date.now() + 1 }]);

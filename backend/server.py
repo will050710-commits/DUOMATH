@@ -14,7 +14,7 @@
 import os, sqlite3, json, uuid, time, threading
 from datetime import timedelta
 
-import requests as req_lib # pyright: ignore[reportMissingModuleSource]
+import requests as req_lib 
 from flask import Flask, request, jsonify, g, Response, stream_with_context
 from flask_cors import CORS
 from flask_jwt_extended import ( # pyright: ignore[reportMissingImports]

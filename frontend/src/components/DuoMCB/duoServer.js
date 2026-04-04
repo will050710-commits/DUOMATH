@@ -19,12 +19,12 @@ export async function createSession() {
   }
 }
 
-export async function chat(session_id, message) {
+export async function chat(session_id, message, extra = {}) {
   try {
     const res = await fetch(`${baseUrl()}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id, message }),
+      body: JSON.stringify({ session_id, message, stream: false, ...extra }),
     });
     if (!res.ok) throw new Error("bad response");
     return await res.json();
