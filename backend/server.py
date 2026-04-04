@@ -41,7 +41,7 @@ jwt = JWTManager(app)
 # ── DB & API Config ──────────────────────────────────────────────────────────
 DB_PATH = os.path.join(os.path.dirname(__file__), "duomath.db")
 GROQ_BASE = "https://api.groq.com/openai/v1"
-GROQ_KEY  = os.environ.get("GROQ_API_KEY", "")
+GROQ_KEY  = os.environ.get("GROQ_API_KEY", "GROQ_API_KEY")
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  DATABASE
@@ -233,9 +233,6 @@ def update_me():
     row = db.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
     return jsonify({"user": user_dict(row)})
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  TEST-SCORE & MINI-GAME ROUTES
-# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route("/api/test-result", methods=["POST"])
 @jwt_required()

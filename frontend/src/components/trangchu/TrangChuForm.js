@@ -248,7 +248,7 @@ export default function TrangChuForm() {
                     <span><strong>Pro tip:</strong> Đọc tiếng Việt → gạt sang tiếng Anh → làm mini-game. Vòng lặp 3 bước này giúp ghi nhớ thuật ngữ song ngữ nhanh nhất.</span>
                   </div>
                   <div style={{ display:"flex", gap:8, marginTop:10 }}>
-                    <Link href="/Cacbailam" style={{ flex:1, textDecoration:"none" }} onClick={() => setShowFlyer(false)}>
+                    <Link href="/Cacbaitoan" style={{ flex:1, textDecoration:"none" }} onClick={() => setShowFlyer(false)}>
                       <div style={{ background:"#0B4F5C", color:"white", borderRadius:7, padding:"9px 0", textAlign:"center", fontWeight:700, fontSize:13, cursor:"pointer" }}>📖 Start learning</div>
                     </Link>
                     <Link href="/DuoMCB" style={{ flex:1, textDecoration:"none" }} onClick={() => setShowFlyer(false)}>
@@ -259,7 +259,7 @@ export default function TrangChuForm() {
               )}
             </div>
 
-            <Link href="/cacbailam" style={{ textDecoration:"none", color:"black", boxShadow:"0 4px 12px rgba(0,0,0,0.1)", padding:"10px 12px", borderRadius:8, background:"white", whiteSpace:"nowrap" }}>
+            <Link href="/Cacbaitoan" style={{ textDecoration:"none", color:"black", boxShadow:"0 4px 12px rgba(0,0,0,0.1)", padding:"10px 12px", borderRadius:8, background:"white", whiteSpace:"nowrap" }}>
               Math lessons ›
             </Link>
             {ready && !user && (
