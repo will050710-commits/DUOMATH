@@ -259,7 +259,7 @@ export default function TrangChuForm() {
               )}
             </div>
 
-            <Link href="/Cacbailam" style={{ textDecoration:"none", color:"black", boxShadow:"0 4px 12px rgba(0,0,0,0.1)", padding:"10px 12px", borderRadius:8, background:"white", whiteSpace:"nowrap" }}>
+            <Link href="/cacbailam" style={{ textDecoration:"none", color:"black", boxShadow:"0 4px 12px rgba(0,0,0,0.1)", padding:"10px 12px", borderRadius:8, background:"white", whiteSpace:"nowrap" }}>
               Math lessons ›
             </Link>
             {ready && !user && (
