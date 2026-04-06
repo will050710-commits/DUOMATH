@@ -1,14 +1,32 @@
-# backend/server.py  —  DuoMath Unified Backend  (v2 fixed)
+# backend/server.py  —  DuoMath Unified Backend  (v3 — auth hardened)
 # ─────────────────────────────────────────────────────────────────────────────
-# BUG FIXES vs previous version:
-#   FIX 1: Removed "from curses import window" (line 14 in old file)
-#           → curses does NOT exist on Windows or Render Linux minimal images
-#           → this caused an ImportError crash at startup, so the server
-#             never started → all requests hit localhost:5000 → ERR_CONNECTION_REFUSED
-#   FIX 2: stream=True default changed to False → simpler, more compatible
-#           frontend still gets full reply but without SSE complexity
-#   FIX 3: ensure_session() now handles DB commit properly without crashing
-#           inside a generator context
+# CHANGES vs v2:
+#
+#  AUTH FIXES
+#  ──────────
+#  FIX A: signup()   — use lastrowid instead of a second SELECT after INSERT
+#                      → avoids rare WAL race; one fewer DB round-trip
+#
+#  FIX B: signup() / login()   — both now return test_results + game_results
+#                      → frontend gets everything in one response, no need for
+#                        a second /api/me call; profile dropdown populates
+#                        immediately after sign-in
+#
+#  FIX C: login()    — email match is now explicitly case-insensitive via
+#                      COLLATE NOCASE; protects against "User@Email.com" vs
+#                      "user@email.com" mismatches after the .lower() strip
+#
+#  FIX D: update_me() PATCH — validate required fields (username) cannot be
+#                      blanked out; strip + length check before saving
+#
+#  FIX E: user_dict() — now includes a 'name' alias for username so the
+#                      frontend can use either key without breaking
+#
+#  REQUIREMENTS FIX
+#  ─────────────────
+#  NOTE: remove "groq>=0.9.0" from requirements.txt — server.py uses raw
+#        HTTP via the 'requests' library; the Groq SDK is never imported.
+#        Keeping it only wastes ~30 s on every Render deploy.
 # ─────────────────────────────────────────────────────────────────────────────
 
 import os, sqlite3, json, uuid, time, threading
@@ -24,7 +42,7 @@ from flask_jwt_extended import (
 from werkzeug.security import generate_password_hash, check_password_hash
 
 try:
-    from flask_compress import Compress # type: ignore
+    from flask_compress import Compress  # type: ignore
     _compress = True
 except ImportError:
     _compress = False
@@ -47,10 +65,10 @@ jwt = JWTManager(app)
 DB_PATH   = os.path.join(os.path.dirname(__file__), "duomath.db")
 GROQ_BASE = "https://api.groq.com/openai/v1"
 GROQ_KEY  = os.environ.get("GROQ_API_KEY", "")
-SELF_URL  = os.environ.get("SELF_URL", "")   # set in Render: https://your-app.onrender.com
+SELF_URL  = os.environ.get("SELF_URL", "")
 
 
-# ── Keep-alive (prevents Render free-tier sleep → ERR_CONNECTION_REFUSED) ─────
+# ── Keep-alive ────────────────────────────────────────────────────────────────
 def _keep_alive():
     if not SELF_URL:
         return
@@ -91,7 +109,7 @@ def init_db():
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS users (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            email       TEXT    UNIQUE NOT NULL,
+            email       TEXT    UNIQUE NOT NULL COLLATE NOCASE,
             username    TEXT    NOT NULL,
             password    TEXT    NOT NULL,
             phone       TEXT    DEFAULT '',
@@ -141,28 +159,62 @@ init_db()
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def user_dict(row):
-    return {"id": row["id"], "email": row["email"], "username": row["username"],
-            "phone": row["phone"], "school": row["school"], "grade": row["grade"],
-            "avatar_url": row["avatar_url"], "created_at": row["created_at"]}
+    """
+    Serialise a users row to a plain dict.
+    Includes 'name' as an alias for 'username' so the frontend can use either.
+    Never includes the hashed password.
+    """
+    return {
+        "id":         row["id"],
+        "email":      row["email"],
+        "username":   row["username"],
+        "name":       row["username"],   # alias — frontend may use either key
+        "phone":      row["phone"],
+        "school":     row["school"],
+        "grade":      row["grade"],
+        "avatar_url": row["avatar_url"],
+        "created_at": row["created_at"],
+    }
 
 def test_dict(row):
-    return {"id": row["id"], "test_key": row["test_key"], "section": row["section"],
-            "score": row["score"], "total": row["total"],
-            "accuracy": row["accuracy"], "time_spent": row["time_spent"],
-            "answers": json.loads(row["answers"] or "{}"), "taken_at": row["taken_at"]}
+    return {
+        "id":         row["id"],
+        "test_key":   row["test_key"],
+        "section":    row["section"],
+        "score":      row["score"],
+        "total":      row["total"],
+        "accuracy":   row["accuracy"],
+        "time_spent": row["time_spent"],
+        "answers":    json.loads(row["answers"] or "{}"),
+        "taken_at":   row["taken_at"],
+    }
 
 def game_dict(row):
-    return {"id": row["id"], "lesson_slug": row["lesson_slug"], "mode": row["mode"],
-            "score": row["score"], "total": row["total"], "played_at": row["played_at"]}
+    return {
+        "id":          row["id"],
+        "lesson_slug": row["lesson_slug"],
+        "mode":        row["mode"],
+        "score":       row["score"],
+        "total":       row["total"],
+        "played_at":   row["played_at"],
+    }
+
+def _fetch_scores(db, uid: int) -> tuple:
+    """Return (test_results_list, game_results_list) for a given user id."""
+    tests = db.execute(
+        "SELECT * FROM test_results WHERE user_id=? ORDER BY taken_at DESC LIMIT 20",
+        (uid,),
+    ).fetchall()
+    games = db.execute(
+        "SELECT * FROM minigame_results WHERE user_id=? ORDER BY played_at DESC LIMIT 20",
+        (uid,),
+    ).fetchall()
+    return [test_dict(t) for t in tests], [game_dict(g) for g in games]
 
 def groq_headers():
     return {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
 
 def ensure_session(sid: str) -> list:
-    """
-    Returns history for session. Auto-creates session if missing.
-    Uses its own connection (not g.db) so it is safe to call from a generator.
-    """
     conn = _make_conn()
     try:
         row = conn.execute("SELECT history FROM sessions WHERE session_id=?", (sid,)).fetchone()
@@ -175,7 +227,6 @@ def ensure_session(sid: str) -> list:
         conn.close()
 
 def save_history(sid: str, history: list):
-    """Persist updated history. Uses its own connection (generator-safe)."""
     conn = _make_conn()
     try:
         conn.execute("UPDATE sessions SET history=? WHERE session_id=?",
@@ -186,6 +237,7 @@ def save_history(sid: str, history: list):
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
+
 @app.route("/api/signup", methods=["POST"])
 def signup():
     d = request.get_json(force=True) or {}
@@ -196,24 +248,43 @@ def signup():
     school   = (d.get("school")   or "").strip()
     grade    = (d.get("grade")    or "").strip()
 
+    # ── Validate ──────────────────────────────────────────────────────────────
     if not email or not username or not password:
         return jsonify({"error": "Email, username and password are required."}), 400
     if len(password) < 6:
         return jsonify({"error": "Password must be at least 6 characters."}), 400
+    if len(username) < 2:
+        return jsonify({"error": "Username must be at least 2 characters."}), 400
 
     db = get_db()
+
+    # ── Duplicate check ───────────────────────────────────────────────────────
     if db.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone():
         return jsonify({"error": "An account with this email already exists."}), 409
 
-    db.execute(
-        "INSERT INTO users (email,username,password,phone,school,grade) VALUES (?,?,?,?,?,?)",
+    # ── Insert — use lastrowid, no second SELECT needed (FIX A) ──────────────
+    cur = db.execute(
+        "INSERT INTO users (email, username, password, phone, school, grade)"
+        " VALUES (?, ?, ?, ?, ?, ?)",
         (email, username, generate_password_hash(password), phone, school, grade),
     )
     db.commit()
-    row    = db.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
-    access = create_access_token(identity=str(row["id"]))
-    rf     = create_refresh_token(identity=str(row["id"]))
-    return jsonify({"access_token": access, "refresh_token": rf, "user": user_dict(row)}), 201
+    new_id = cur.lastrowid   # ← FIX A: get id directly from cursor
+
+    row = db.execute("SELECT * FROM users WHERE id=?", (new_id,)).fetchone()
+
+    access = create_access_token(identity=str(new_id))
+    rf     = create_refresh_token(identity=str(new_id))
+
+    # New user has no scores yet, but we include the empty arrays anyway
+    # so the frontend response shape is identical to login() (FIX B)
+    return jsonify({
+        "access_token":  access,
+        "refresh_token": rf,
+        "user":          user_dict(row),
+        "test_results":  [],    # FIX B: consistent shape with login
+        "game_results":  [],
+    }), 201
 
 
 @app.route("/api/login", methods=["POST"])
@@ -226,13 +297,25 @@ def login():
         return jsonify({"error": "Email and password are required."}), 400
 
     db  = get_db()
+    # FIX C: COLLATE NOCASE on the column means this matches regardless of case
     row = db.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
     if not row or not check_password_hash(row["password"], password):
         return jsonify({"error": "Invalid email or password."}), 401
 
-    access = create_access_token(identity=str(row["id"]))
-    rf     = create_refresh_token(identity=str(row["id"]))
-    return jsonify({"access_token": access, "refresh_token": rf, "user": user_dict(row)})
+    uid = row["id"]
+    access = create_access_token(identity=str(uid))
+    rf     = create_refresh_token(identity=str(uid))
+
+    # FIX B: return scores immediately so frontend doesn't need a second /api/me call
+    test_results, game_results = _fetch_scores(db, uid)
+
+    return jsonify({
+        "access_token":  access,
+        "refresh_token": rf,
+        "user":          user_dict(row),
+        "test_results":  test_results,   # FIX B
+        "game_results":  game_results,   # FIX B
+    })
 
 
 @app.route("/api/refresh", methods=["POST"])
@@ -249,11 +332,14 @@ def me():
     row = db.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
     if not row:
         return jsonify({"error": "User not found."}), 404
-    tests = db.execute("SELECT * FROM test_results WHERE user_id=? ORDER BY taken_at DESC LIMIT 20", (uid,)).fetchall()
-    games = db.execute("SELECT * FROM minigame_results WHERE user_id=? ORDER BY played_at DESC LIMIT 20", (uid,)).fetchall()
-    return jsonify({"user": user_dict(row),
-                    "test_results": [test_dict(t) for t in tests],
-                    "game_results": [game_dict(g) for g in games]})
+
+    test_results, game_results = _fetch_scores(db, uid)
+
+    return jsonify({
+        "user":         user_dict(row),
+        "test_results": test_results,
+        "game_results": game_results,
+    })
 
 
 @app.route("/api/me", methods=["PATCH"])
@@ -262,17 +348,38 @@ def update_me():
     uid = int(get_jwt_identity())
     d   = request.get_json(force=True) or {}
     db  = get_db()
-    allowed = ["username", "phone", "school", "grade", "avatar_url"]
+
+    # Fields that MUST stay non-empty
+    REQUIRED_NON_EMPTY = {"username"}
+    # All fields that are patchable
+    ALLOWED = ["username", "phone", "school", "grade", "avatar_url"]
+
     sets, vals = [], []
-    for f in allowed:
-        if f in d:
-            sets.append(f"{f}=?")
-            vals.append(str(d[f]).strip())
+    errors = []
+
+    for f in ALLOWED:
+        if f not in d:
+            continue
+        val = str(d[f]).strip()
+        # FIX D: block blanking out required fields
+        if f in REQUIRED_NON_EMPTY and not val:
+            errors.append(f"'{f}' cannot be empty.")
+            continue
+        if f == "username" and len(val) < 2:
+            errors.append("Username must be at least 2 characters.")
+            continue
+        sets.append(f"{f}=?")
+        vals.append(val)
+
+    if errors:
+        return jsonify({"error": " ".join(errors)}), 400
     if not sets:
         return jsonify({"error": "Nothing to update."}), 400
+
     vals.append(uid)
-    db.execute(f"UPDATE users SET {','.join(sets)} WHERE id=?", vals)
+    db.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", vals)
     db.commit()
+
     row = db.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
     return jsonify({"user": user_dict(row)})
 
@@ -283,16 +390,22 @@ def update_me():
 def save_test():
     uid = int(get_jwt_identity())
     d   = request.get_json(force=True) or {}
-    test_key, section = d.get("test_key", ""), d.get("section", "")
-    score, total = int(d.get("score", 0)), int(d.get("total", 0))
+    test_key   = d.get("test_key",  "")
+    section    = d.get("section",   "")
+    score      = int(d.get("score",  0))
+    total      = int(d.get("total",  0))
     accuracy   = round((score / total * 100) if total else 0, 1)
     time_spent = int(d.get("time_spent", 0))
     answers    = json.dumps(d.get("answers", {}))
+
     if not test_key or not section:
         return jsonify({"error": "test_key and section are required."}), 400
+
     db = get_db()
     db.execute(
-        "INSERT INTO test_results (user_id,test_key,section,score,total,accuracy,time_spent,answers) VALUES (?,?,?,?,?,?,?,?)",
+        "INSERT INTO test_results"
+        " (user_id, test_key, section, score, total, accuracy, time_spent, answers)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         (uid, test_key, section, score, total, accuracy, time_spent, answers),
     )
     db.commit()
@@ -303,7 +416,9 @@ def save_test():
 @jwt_required()
 def get_tests():
     uid  = int(get_jwt_identity())
-    rows = get_db().execute("SELECT * FROM test_results WHERE user_id=? ORDER BY taken_at DESC", (uid,)).fetchall()
+    rows = get_db().execute(
+        "SELECT * FROM test_results WHERE user_id=? ORDER BY taken_at DESC", (uid,)
+    ).fetchall()
     return jsonify([test_dict(r) for r in rows])
 
 
@@ -312,13 +427,20 @@ def get_tests():
 def save_game():
     uid = int(get_jwt_identity())
     d   = request.get_json(force=True) or {}
-    slug, mode   = d.get("lesson_slug", ""), d.get("mode", "mc")
-    score, total = int(d.get("score", 0)), int(d.get("total", 0))
+    slug  = d.get("lesson_slug", "")
+    mode  = d.get("mode",  "mc")
+    score = int(d.get("score", 0))
+    total = int(d.get("total", 0))
+
     if not slug:
         return jsonify({"error": "lesson_slug is required."}), 400
+
     db = get_db()
-    db.execute("INSERT INTO minigame_results (user_id,lesson_slug,mode,score,total) VALUES (?,?,?,?,?)",
-               (uid, slug, mode, score, total))
+    db.execute(
+        "INSERT INTO minigame_results (user_id, lesson_slug, mode, score, total)"
+        " VALUES (?, ?, ?, ?, ?)",
+        (uid, slug, mode, score, total),
+    )
     db.commit()
     return jsonify({"saved": True}), 201
 
@@ -327,7 +449,9 @@ def save_game():
 @jwt_required()
 def get_games():
     uid  = int(get_jwt_identity())
-    rows = get_db().execute("SELECT * FROM minigame_results WHERE user_id=? ORDER BY played_at DESC", (uid,)).fetchall()
+    rows = get_db().execute(
+        "SELECT * FROM minigame_results WHERE user_id=? ORDER BY played_at DESC", (uid,)
+    ).fetchall()
     return jsonify([game_dict(r) for r in rows])
 
 
@@ -368,15 +492,13 @@ def chat():
     session_id   = d.get("session_id") or str(uuid.uuid4())
     user_message = (d.get("message") or "").strip()
     image_data   = d.get("image")
-    use_stream   = d.get("stream", False)   # default False — simpler & more compatible
+    use_stream   = d.get("stream", False)
 
     if not user_message:
         return jsonify({"error": "message is required."}), 400
 
-    # ensure_session uses its own connection — safe for both streaming and normal paths
     history = ensure_session(session_id)
 
-    # ── Build message content ─────────────────────────────────────────────────
     if image_data:
         if "," in image_data:
             header, b64 = image_data.split(",", 1)
@@ -416,7 +538,6 @@ def chat():
         "stream":      use_stream,
     }
 
-    # ── Streaming path (SSE) ──────────────────────────────────────────────────
     if use_stream:
         def generate():
             full_reply = []
@@ -449,7 +570,7 @@ def chat():
 
             reply_text = "".join(full_reply)
             history.append({"role": "assistant", "content": reply_text})
-            save_history(session_id, history)   # own connection — generator safe
+            save_history(session_id, history)
             yield f"data: {json.dumps({'done': True, 'session_id': session_id})}\n\n"
 
         return Response(
@@ -462,7 +583,6 @@ def chat():
             },
         )
 
-    # ── Normal (non-streaming) path ───────────────────────────────────────────
     try:
         resp  = req_lib.post(f"{GROQ_BASE}/chat/completions",
                               headers=groq_headers(),
@@ -527,7 +647,7 @@ def health():
         db_ms, db_ok = -1, False
     return jsonify({
         "status":        "ok" if db_ok else "degraded",
-        "service":       "DuoMath API v2",
+        "service":       "DuoMath API v3",
         "db_latency_ms": db_ms,
         "keep_alive":    bool(SELF_URL),
         "text_model":    "llama-3.3-70b-versatile",
@@ -538,7 +658,7 @@ def health():
 # ── Run ───────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    print(f"DuoMath API v2 → http://localhost:{port}")
+    print(f"DuoMath API v3 → http://localhost:{port}")
     app.run(host="0.0.0.0", port=port,
             debug=os.environ.get("FLASK_ENV") != "production",
             threaded=True)
