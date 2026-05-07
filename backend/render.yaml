@@ -1,0 +1,25 @@
+# render.yaml — DuoMath backend deploy config
+# To use FastAPI (main.py), change startCommand to:
+#   uvicorn main:app --host 0.0.0.0 --port $PORT
+# To stay on Flask (server.py), keep:
+#   gunicorn server:app --bind 0.0.0.0:$PORT --workers 2 --threads 4
+
+services:
+  - type: web
+    name: duomath-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 2
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: MALLOC_ARENA_MAX
+        value: "2"
+      - key: GROQ_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: SELF_URL
+        sync: false

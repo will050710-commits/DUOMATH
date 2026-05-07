@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { gradeTest } from "@/utils/grader";
 import { useRouter } from "next/navigation";
-const LEGACY_KEY="readingTest_section3";const SECTION="section3";const TEST_KEY="reading-test-L11-4";
-const mathProblems=[{id:1,source:"Grade 11 — Semester I Exam, Dinh Tien Hoang High School, 2023–2024",label:"Problem 1",parts:["a) Simplify: (27^(1/3) · 9^(3/2)) / (3^(−1)).","b) Solve: 5^(2x+1) = 125."],fields:["Answer (a):","Answer (b):"]},{id:2,source:"Grade 11 — Semester I Exam, Viet Duc High School, 2023–2024",label:"Problem 2",parts:["a) Solve: log₃(x²−2x) = log₃(x+4).","b) Evaluate: log₆(4) + log₆(9)."],fields:["Answer (a):","Answer (b):"]},{id:3,source:"Grade 11 — Mid-term Exam, Nguyen Du High School, 2023–2024",label:"Problem 3",parts:["The sum of the first n terms of an arithmetic sequence is Sₙ = 3n² + n.","a) Find u₁ and d.","b) Find the first term greater than 100."],fields:["Answer (a):","Answer (b):"]},{id:4,source:"Grade 11 — Semester I Exam, Le Quy Don High School, 2023–2024",label:"Problem 4",parts:["A geometric sequence has u₁ = 5 and S∞ = 25 (infinite sum).","a) Find the common ratio q.","b) Find u₄."],fields:["Answer (a) — q:","Answer (b) — u₄:"]},{id:5,source:"Grade 11 — End-of-Year Exam, Le Quy Don High School, 2023–2024",label:"Problem 5",parts:["a) Write the negation of: ∃x∈ℝ: 2^x < 0.","b) Is the statement 'P⟹Q is true and P is false' logically consistent? Explain."],fields:["Answer (a):","Answer (b):"]}];
+const LEGACY_KEY="readingTest_section3";const SECTION="section3";const TEST_KEY="reading-test-L11-6";
+const mathProblems=[{id:1,source:"Grade 11 — Semester I Exam, Chu Van An High School, 2023–2024",label:"Problem 1",parts:["a) Solve: log₅(x+2) + log₅(x−2) = log₅(5).","b) Solve: 4^x − 6·2^x + 8 = 0."],fields:["Answer (a):","Answer (b):"]},{id:2,source:"Grade 11 — Semester I Exam, Ly Tu Trong High School, 2023–2024",label:"Problem 2",parts:["a) Compute: 2^(log₂(3)) + 3^(log₃(5)) − 5^(log₅(2)).","b) Simplify: log₃(√27) + log₉(3) − log₂₇(9)."],fields:["Answer (a):","Answer (b):"]},{id:3,source:"Grade 11 — Mid-term Exam, Le Hong Phong High School, 2023–2024",label:"Problem 3",parts:["The sum of an arithmetic series is S₁₀₀ = 5050.","a) If u₁=1, find d.","b) Find the 50th term u₅₀."],fields:["Answer (a) — d:","Answer (b) — u₅₀:"]},{id:4,source:"Grade 11 — Semester I Exam, Nguyen Binh Khiem High School, 2023–2024",label:"Problem 4",parts:["A geometric sequence has u₁=1 and u₄=27.","a) Find q.","b) Find the smallest n such that Sₙ > 1000."],fields:["Answer (a) — q:","Answer (b) — n:"]},{id:5,source:"Grade 11 — End-of-Year Exam, Tran Phu High School, 2023–2024",label:"Problem 5",parts:["a) Is P⟺Q logically equivalent to (P⟹Q) ∧ (Q⟹P)? Justify.","b) Prove or disprove: the negation of 'all prime numbers are odd' is 'no prime number is odd'."],fields:["Answer (a):","Answer (b):"]}];
 export default function Page(){
   const router=useRouter();const [time,setTime]=useState("");const [answers,setAnswers]=useState({});
   useEffect(()=>{
@@ -19,7 +19,7 @@ export default function Page(){
   useEffect(()=>{startTimer(TEST_KEY,60);const interval=setInterval(()=>{const remain=getRemainingTime(TEST_KEY);setTime(formatTime(remain));if(remain<=0){clearInterval(interval);submitTest();}},1000);return()=>clearInterval(interval);},[]);
   return(<div style={{width:"100%",height:"100vh",display:"flex",flexDirection:"column",background:"#f5f5f5"}}>
     <header style={{background:"#fff",borderBottom:"1px solid #e0e0e0",padding:"16px 32px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",flexShrink:0}}>
-      <div><div style={{fontWeight:"bold",fontSize:20,color:"#0B4F5C",letterSpacing:1}}>DUOSTEAM</div><div style={{color:"#555",fontSize:14,marginTop:2}}>Bilingual Math Test 4 — Section 3: Short-Answer Math (Grade 11)</div></div>
+      <div><div style={{fontWeight:"bold",fontSize:20,color:"#0B4F5C",letterSpacing:1}}>DUOSTEAM</div><div style={{color:"#555",fontSize:14,marginTop:2}}>Bilingual Math Test 6 — Section 3: Short-Answer Math (Grade 11)</div></div>
       <div style={{background:"#fff0f0",border:"1px solid #ffcccc",borderRadius:8,padding:"8px 20px",fontWeight:600,fontSize:18,color:"#c00"}}>⏱ {time}</div>
     </header>
     <div style={{display:"flex",flex:1,overflow:"hidden"}}>
@@ -36,14 +36,14 @@ export default function Page(){
             {mathProblems.map(prob=>(<div key={prob.id} style={{background:"#f9f9f9",borderRadius:10,padding:"16px 20px",boxShadow:"0 2px 6px rgba(0,0,0,0.05)"}}>
               <p style={{fontWeight:700,color:"#0B4F5C",marginBottom:12}}>{prob.label}</p>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                {prob.fields.map((placeholder,i)=>{const key=`${prob.id}-${i}`;return(<input key={i} type="text" value={answers[key]||""} onChange={e=>saveAnswer(key,e.target.value)} placeholder={placeholder} style={{width:"100%",border:"1.5px solid #d0d0d0",borderRadius:8,padding:"10px 14px",fontSize:15,color:"black",outline:"none",background:"#fff",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0B4F5C"} onBlur={e=>e.target.style.borderColor="#d0d0d0"}/>);}}</div>
+                {prob.fields.map((placeholder,i)=>{const key=`${prob.id}-${i}`;return(<input key={i} type="text" value={answers[key]||""} onChange={e=>saveAnswer(key,e.target.value)} placeholder={placeholder} style={{width:"100%",border:"1.5px solid #d0d0d0",borderRadius:8,padding:"10px 14px",fontSize:15,color:"black",outline:"none",background:"#fff",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0B4F5C"} onBlur={e=>e.target.style.borderColor="#d0d0d0"}/>);})}</div>
             </div>))}
           </div>
         </div>
       </div>
     </div>
     <footer style={{background:"#fff",borderTop:"1px solid #e0e0e0",display:"flex",justifyContent:"center",alignItems:"center",gap:16,padding:"12px 32px",height:72,flexShrink:0,boxShadow:"0 -2px 8px rgba(0,0,0,0.05)"}}>
-      <NavCard href="/section1-L11-4" label="SECTION 1"/><NavCard href="/section2-L11-4" label="SECTION 2"/><NavCard href="/section3-L11-4" label="SECTION 3" active/>
+      <NavCard href="/section1-L11-6" label="SECTION 1"/><NavCard href="/section2-L11-6" label="SECTION 2"/><NavCard href="/section3-L11-6" label="SECTION 3" active/>
       <button onClick={submitTest} style={{background:"#c00",color:"white",border:"none",borderRadius:8,padding:"10px 28px",fontWeight:600,fontSize:15,cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background="#a00"} onMouseLeave={e=>e.currentTarget.style.background="#c00"}>Nộp bài</button>
     </footer>
   </div>);

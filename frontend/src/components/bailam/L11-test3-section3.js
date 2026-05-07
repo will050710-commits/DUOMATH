@@ -36,7 +36,7 @@ export default function Page(){
             {mathProblems.map(prob=>(<div key={prob.id} style={{background:"#f9f9f9",borderRadius:10,padding:"16px 20px",boxShadow:"0 2px 6px rgba(0,0,0,0.05)"}}>
               <p style={{fontWeight:700,color:"#0B4F5C",marginBottom:12}}>{prob.label}</p>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                {prob.fields.map((placeholder,i)=>{const key=`${prob.id}-${i}`;return(<input key={i} type="text" value={answers[key]||""} onChange={e=>saveAnswer(key,e.target.value)} placeholder={placeholder} style={{width:"100%",border:"1.5px solid #d0d0d0",borderRadius:8,padding:"10px 14px",fontSize:15,color:"black",outline:"none",background:"#fff",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0B4F5C"} onBlur={e=>e.target.style.borderColor="#d0d0d0"}/>);}}</div>
+                {prob.fields.map((placeholder,i)=>{const key=`${prob.id}-${i}`;return(<input key={i} type="text" value={answers[key]||""} onChange={e=>saveAnswer(key,e.target.value)} placeholder={placeholder} style={{width:"100%",border:"1.5px solid #d0d0d0",borderRadius:8,padding:"10px 14px",fontSize:15,color:"black",outline:"none",background:"#fff",boxSizing:"border-box"}} onFocus={e=>e.target.style.borderColor="#0B4F5C"} onBlur={e=>e.target.style.borderColor="#d0d0d0"}/>);})}</div>
             </div>))}
           </div>
         </div>

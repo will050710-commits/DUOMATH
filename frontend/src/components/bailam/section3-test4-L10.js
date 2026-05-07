@@ -96,7 +96,7 @@ export default function Page() {
                       return (<input key={i} type="text" value={answers[key]||""} onChange={e=>saveAnswer(key,e.target.value)} placeholder={placeholder}
                         style={{ width:"100%", border:"1.5px solid #d0d0d0", borderRadius:8, padding:"10px 14px", fontSize:15, color:"black", outline:"none", background:"#fff", boxSizing:"border-box" }}
                         onFocus={e=>e.target.style.borderColor="#0B4F5C"} onBlur={e=>e.target.style.borderColor="#d0d0d0"} />);
-                    }}
+                    })}
                   </div>
                 </div>
               ))}

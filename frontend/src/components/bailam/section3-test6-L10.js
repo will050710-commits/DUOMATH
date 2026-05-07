@@ -7,14 +7,14 @@ import { useRouter } from "next/navigation";
 
 const LEGACY_KEY = "readingTest_section3";
 const SECTION = "section3";
-const TEST_KEY = "reading-test-5";
+const TEST_KEY = "reading-test-6";
 
 const mathProblems = [
-  { id:1, source:"Grade 10 — Semester II Exam, Tran Phu High School, Da Nang, 2023–2024", label:"Problem 1", parts:["a) Solve the inequality: (x−1)(x+3) > 0.", "b) Find all real values of k such that kx² − 4x + k = 0 has no real solutions."], fields:["Answer (a):", "Answer (b):"] },
-  { id:2, source:"Grade 10 — Mid-term Exam, Nguyen Binh Khiem High School, 2023–2024", label:"Problem 2", parts:["a) Find the coefficient of x⁴ in the expansion of (x + 2)⁶.", "b) In how many ways can a captain and vice-captain be chosen from a team of 11 players?"], fields:["Answer (a):", "Answer (b):"] },
-  { id:3, source:"Grade 10 — Semester II Exam, Quoc Hoc Hue High School, 2023–2024", label:"Problem 3", parts:["A box contains 3 red, 4 blue, and 5 green balls. Three balls are drawn at random.", "a) What is the probability all three are the same colour?", "b) What is the probability of drawing exactly 2 blue balls?"], fields:["Answer (a):", "Answer (b):"] },
-  { id:4, source:"Grade 10 — Final Exam, Phan Dinh Phung High School, 2022–2023", label:"Problem 4", parts:["Given the line d: 3x − 4y + 12 = 0.", "a) Find the distance from the origin O(0,0) to d.", "b) Find the equation of the line parallel to d passing through P(1, 2)."], fields:["Answer (a):", "Answer (b):"] },
-  { id:5, source:"Grade 10 — End-of-Year Exam, Nguyen Du High School, 2023–2024", label:"Problem 5", parts:["Given →a = (2, 1) and →b = (−1, 3).", "a) Find →a + →b, →a − →b, and 3→a.", "b) Find →c such that →c = 2→a − 3→b."], fields:["Answer (a):", "Answer (b) — →c:"] }
+  { id:1, source:"Grade 10 — Semester I Exam, Bui Thi Xuan High School, 2023–2024", label:"Problem 1", parts:["a) Solve: |2x − 3| ≤ 7.", "b) Find all real k so that the equation x² − (k+1)x + k = 0 has two equal roots."], fields:["Answer (a):", "Answer (b):"] },
+  { id:2, source:"Grade 10 — Mid-term Exam, Phan Boi Chau High School, 2023–2024", label:"Problem 2", parts:["a) How many 4-digit numbers with distinct digits can be formed from {0,1,2,3,4,5}?", "b) A group of 10 people votes for a president, vice-president, and secretary. How many outcomes are possible?"], fields:["Answer (a):", "Answer (b):"] },
+  { id:3, source:"Grade 10 — Semester II Exam, Luong The Vinh High School, 2023–2024", label:"Problem 3", parts:["A card is drawn at random from a standard 52-card deck.", "a) What is the probability it is a heart or a king?", "b) What is the probability it is neither an ace nor a face card?"], fields:["Answer (a):", "Answer (b):"] },
+  { id:4, source:"Grade 10 — Final Exam, Gia Dinh High School, 2022–2023", label:"Problem 4", parts:["Line d passes through A(2, −1) and B(−1, 5).", "a) Write the equation of line d in the form ax + by + c = 0.", "b) Find the distance from point C(4, 3) to line d."], fields:["Answer (a):", "Answer (b):"] },
+  { id:5, source:"Grade 10 — End-of-Year Exam, Tran Dai Nghia High School, 2023–2024", label:"Problem 5", parts:["Given triangle ABC with A(1,1), B(5,1), C(3,5).", "a) Find the perimeter of triangle ABC.", "b) Find the equation of the circle circumscribed about triangle ABC."], fields:["Answer (a) — perimeter:", "Answer (b) — circle:"] }
 ];
 
 export default function Page() {
@@ -65,7 +65,7 @@ export default function Page() {
       <header style={{ background:"#ffffff", borderBottom:"1px solid #e0e0e0", padding:"16px 32px", display:"flex", alignItems:"center", justifyContent:"space-between", boxShadow:"0 2px 8px rgba(0,0,0,0.06)", flexShrink:0 }}>
         <div>
           <div style={{ fontWeight:"bold", fontSize:20, color:"#0B4F5C", letterSpacing:1 }}>DUOSTEAM</div>
-          <div style={{ color:"#555", fontSize:14, marginTop:2 }}>Bilingual Math Test 5 — Section 3: Short-Answer Math (Grade 10)</div>
+          <div style={{ color:"#555", fontSize:14, marginTop:2 }}>Bilingual Math Test 6 — Section 3: Short-Answer Math (Grade 10)</div>
         </div>
         <div style={{ background:"#fff0f0", border:"1px solid #ffcccc", borderRadius:8, padding:"8px 20px", fontWeight:600, fontSize:18, color:"#c00" }}>⏱ {time}</div>
       </header>
@@ -96,7 +96,7 @@ export default function Page() {
                       return (<input key={i} type="text" value={answers[key]||""} onChange={e=>saveAnswer(key,e.target.value)} placeholder={placeholder}
                         style={{ width:"100%", border:"1.5px solid #d0d0d0", borderRadius:8, padding:"10px 14px", fontSize:15, color:"black", outline:"none", background:"#fff", boxSizing:"border-box" }}
                         onFocus={e=>e.target.style.borderColor="#0B4F5C"} onBlur={e=>e.target.style.borderColor="#d0d0d0"} />);
-                    }}
+                    })}
                   </div>
                 </div>
               ))}
@@ -105,9 +105,9 @@ export default function Page() {
         </div>
       </div>
       <footer style={{ background:"#ffffff", borderTop:"1px solid #e0e0e0", display:"flex", justifyContent:"center", alignItems:"center", gap:16, padding:"12px 32px", height:72, flexShrink:0, boxShadow:"0 -2px 8px rgba(0,0,0,0.05)" }}>
-        <NavCard href="/section1-L10-5" label="SECTION 1" />
-        <NavCard href="/section2-L10-5" label="SECTION 2" />
-        <NavCard href="/section3-L10-5" label="SECTION 3" active />
+        <NavCard href="/section1-L10-6" label="SECTION 1" />
+        <NavCard href="/section2-L10-6" label="SECTION 2" />
+        <NavCard href="/section3-L10-6" label="SECTION 3" active />
         <button onClick={submitTest} style={{ background:"#c00", color:"white", border:"none", borderRadius:8, padding:"10px 28px", fontWeight:600, fontSize:15, cursor:"pointer" }}
           onMouseEnter={e=>e.currentTarget.style.background="#a00"} onMouseLeave={e=>e.currentTarget.style.background="#c00"}>Nộp bài</button>
       </footer>

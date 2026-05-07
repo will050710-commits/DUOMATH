@@ -29,10 +29,12 @@
 #        Keeping it only wastes ~30 s on every Render deploy.
 # ─────────────────────────────────────────────────────────────────────────────
 
-import os, sqlite3, json, uuid, time, threading
+import os, sqlite3, json, uuid, time, threading, base64, io
 from datetime import timedelta
+from functools import lru_cache
 
 import requests as req_lib
+import orjson
 from flask import Flask, request, jsonify, g, Response, stream_with_context
 from flask_cors import CORS
 from flask_jwt_extended import (
@@ -46,6 +48,14 @@ try:
     _compress = True
 except ImportError:
     _compress = False
+
+try:
+    import easyocr
+    ocr_reader = easyocr.Reader(['vi', 'en'], gpu=False)
+    _ocr_available = True
+except ImportError:
+    ocr_reader = None
+    _ocr_available = False
 
 # ── App ───────────────────────────────────────────────────────────────────────
 app = Flask(__name__)
@@ -66,6 +76,33 @@ DB_PATH   = os.path.join(os.path.dirname(__file__), "duomath.db")
 GROQ_BASE = "https://api.groq.com/openai/v1"
 GROQ_KEY  = os.environ.get("GROQ_API_KEY", "")
 SELF_URL  = os.environ.get("SELF_URL", "")
+
+
+# ── Cached system prompts ─────────────────────────────────────────────────────
+@lru_cache(maxsize=4)
+def cached_system_prompt(variant: str = "text") -> str:
+    if variant == "image":
+        return (
+            "You are a Vietnamese math tutor for grades 10-12. "
+            "Solve math problems briefly step-by-step."
+        )
+    return (
+        "You are a concise Vietnamese math tutor for grades 10-12. "
+        "Explain briefly step-by-step."
+    )
+
+
+def extract_text_from_image(image_bytes: bytes) -> str:
+    """Run OCR on raw image bytes and return extracted text."""
+    if not _ocr_available or ocr_reader is None:
+        return ""
+    try:
+        from PIL import Image
+        img = Image.open(io.BytesIO(image_bytes))
+        result = ocr_reader.readtext(img, detail=0)
+        return "\n".join(result)
+    except Exception:
+        return ""
 
 
 # ── Keep-alive ────────────────────────────────────────────────────────────────
@@ -500,41 +537,51 @@ def chat():
     history = ensure_session(session_id)
 
     if image_data:
+        # Extract base64 bytes
         if "," in image_data:
             header, b64 = image_data.split(",", 1)
             media_type  = header.split(":")[1].split(";")[0]
         else:
             b64, media_type = image_data, "image/jpeg"
 
-        user_content = [
-            {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{b64}"}},
-            {"type": "text",      "text": user_message},
-        ]
-        model         = "meta-llama/llama-4-scout-17b-16e-instruct"
-        system_prompt = (
-            "You are DuoMCB, a bilingual (English & Vietnamese) math tutor for Grade 10-12. "
-            "Analyse the image carefully. Use the Socratic method: guide with questions, "
-            "not full answers. Be concise."
-        )
+        # ── OCR-first pipeline: extract text → use fast text model ────────
+        extracted_text = ""
+        if _ocr_available:
+            try:
+                img_bytes = base64.b64decode(b64)
+                extracted_text = extract_text_from_image(img_bytes)
+            except Exception:
+                extracted_text = ""
+
+        if extracted_text.strip():
+            # OCR succeeded → use fast text model instead of vision
+            user_content = f"OCR TEXT:\n{extracted_text}\n\nQUESTION:\n{user_message}"
+            model         = "llama-3.1-8b-instant"
+            system_prompt = cached_system_prompt("image")
+        else:
+            # OCR failed / empty → fallback to lightweight vision model
+            user_content = [
+                {"type": "image_url", "image_url": {"url": f"data:{media_type};base64,{b64}"}},
+                {"type": "text",      "text": user_message},
+            ]
+            model         = "llama-3.2-11b-vision-preview"
+            system_prompt = cached_system_prompt("image")
+
         history.append({"role": "user", "content": f"[Image] {user_message}"})
     else:
         user_content  = user_message
-        model         = "llama-3.3-70b-versatile"
-        system_prompt = (
-            "You are DuoMCB, a bilingual (Vietnamese-English) math tutor for Grade 10-12 students. "
-            "Use the Socratic method: ask guiding questions rather than giving complete answers. "
-            "Be encouraging and concise."
-        )
+        model         = "llama-3.1-8b-instant"
+        system_prompt = cached_system_prompt("text")
         history.append({"role": "user", "content": user_message})
 
-    messages = [{"role": "system", "content": system_prompt}] + history[-10:]
+    messages = [{"role": "system", "content": system_prompt}] + history[-4:]
     messages[-1]["content"] = user_content
 
     payload = {
         "model":       model,
         "messages":    messages,
-        "max_tokens":  512,
-        "temperature": 0.7,
+        "max_tokens":  220,
+        "temperature": 0.3,
         "stream":      use_stream,
     }
 
@@ -545,7 +592,7 @@ def chat():
                 with req_lib.post(
                     f"{GROQ_BASE}/chat/completions",
                     headers=groq_headers(), json=payload,
-                    stream=True, timeout=30,
+                    stream=True, timeout=(3, 15),
                 ) as resp:
                     resp.raise_for_status()
                     for raw_line in resp.iter_lines():
@@ -561,17 +608,17 @@ def chat():
                             token = chunk["choices"][0]["delta"].get("content", "")
                             if token:
                                 full_reply.append(token)
-                                yield f"data: {json.dumps({'token': token, 'session_id': session_id})}\n\n"
+                                yield f"data: {orjson.dumps({'token': token, 'session_id': session_id}).decode()}\n\n"
                         except (json.JSONDecodeError, KeyError, IndexError):
                             continue
             except Exception as e:
-                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                yield f"data: {orjson.dumps({'error': str(e)}).decode()}\n\n"
                 return
 
             reply_text = "".join(full_reply)
             history.append({"role": "assistant", "content": reply_text})
             save_history(session_id, history)
-            yield f"data: {json.dumps({'done': True, 'session_id': session_id})}\n\n"
+            yield f"data: {orjson.dumps({'done': True, 'session_id': session_id}).decode()}\n\n"
 
         return Response(
             stream_with_context(generate()),
@@ -587,7 +634,7 @@ def chat():
         resp  = req_lib.post(f"{GROQ_BASE}/chat/completions",
                               headers=groq_headers(),
                               json={**payload, "stream": False},
-                              timeout=30)
+                              timeout=(3, 15))
         resp.raise_for_status()
         reply = resp.json()["choices"][0]["message"]["content"]
     except Exception as e:
@@ -614,18 +661,18 @@ def translate():
         f"Text: {text}"
     )
     payload = {
-        "model":       "llama-3.3-70b-versatile",
+        "model":       "llama-3.1-8b-instant",
         "messages":    [
             {"role": "system", "content": "You are a JSON-only translation API. Output only the JSON object."},
             {"role": "user",   "content": prompt},
         ],
-        "max_tokens":  600,
+        "max_tokens":  400,
         "temperature": 0.2,
     }
 
     try:
         resp  = req_lib.post(f"{GROQ_BASE}/chat/completions",
-                              headers=groq_headers(), json=payload, timeout=20)
+                              headers=groq_headers(), json=payload, timeout=(3, 15))
         resp.raise_for_status()
         raw   = resp.json()["choices"][0]["message"]["content"]
         clean = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
@@ -650,8 +697,9 @@ def health():
         "service":       "DuoMath API v3",
         "db_latency_ms": db_ms,
         "keep_alive":    bool(SELF_URL),
-        "text_model":    "llama-3.3-70b-versatile",
-        "vision_model":  "meta-llama/llama-4-scout-17b-16e-instruct",
+        "text_model":    "llama-3.1-8b-instant",
+        "vision_model":  "llama-3.2-11b-vision-preview",
+        "ocr_available": _ocr_available,
     })
 
 
